@@ -1,11 +1,10 @@
 import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { AuthService } from 'src/auth/auth.service';
-import { LoginUserDto } from 'src/auth/dto/login-user.dto';
-import { Request } from 'express';
-import { JwtAuthGuard } from 'src/auth/jwt/jwt.auth.guard';
-import { User } from 'src/common/user.decorator';
+import { AuthService } from '../auth/auth.service';
+import { LoginUserDto } from '../auth/dto/login-user.dto';
+import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
+import { User } from '../common/user.decorator';
 
 @Controller('user')
 export class UserController {
@@ -27,7 +26,7 @@ export class UserController {
     }
 
     @Post("login")
-    login(@Body() dto: LoginUserDto){
+    signIn(@Body() dto: LoginUserDto){
         return this.authService.signIn(dto);
     }
 
