@@ -1,10 +1,14 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from 'src/user/user.service';
 import { LoginUserDto } from './dto/login-user.dto';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-    constructor(private readonly userService: UserService){}
+    constructor(
+        private readonly userService: UserService,
+        private readonly jwtService: JwtService
+    ){}
 
     signIn(dto: LoginUserDto){
         const {email, password } = dto;
@@ -18,6 +22,8 @@ export class AuthService {
             throw new UnauthorizedException("비밀번호가 잘못되었습니다.");
         }
 
-        return user;
+        const payload = { email: user.email, sub: user.userId };
+
+        return { access_token: this.jwtService.sign(payload) };
     }
 }
