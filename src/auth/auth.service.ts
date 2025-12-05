@@ -1,5 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { UserService } from 'src/user/user.service';
+import { UserService } from '../user/user.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
 
@@ -10,9 +10,9 @@ export class AuthService {
         private readonly jwtService: JwtService
     ){}
 
-    signIn(dto: LoginUserDto){
+    async signIn(dto: LoginUserDto){
         const {email, password } = dto;
-        const user = this.userService.findOne(email);
+        const user = await this.userService.findOne(email);
         if(!user){
             throw new UnauthorizedException("존재하지 않은 계정입니다.");
         }
