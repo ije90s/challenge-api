@@ -1,15 +1,20 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { AuthService } from 'src/auth/auth.service';
+import { LoginUserDto } from 'src/auth/dto/login-user.dto';
 
 @Controller('user')
 export class UserController {
 
-    constructor(private readonly userService: UserService){}
+    constructor(
+        private readonly userService: UserService,
+        private readonly authService: AuthService
+    ){}
 
     @Post()
-    create(@Body() dto: CreateUserDto){
-        return this.userService.create(dto);
+    signUp(@Body() dto: CreateUserDto){
+        return this.userService.signUp(dto);
     }
 
     @Get("me/:id")
@@ -18,8 +23,8 @@ export class UserController {
     }
 
     @Post("login")
-    login(@Body() dto){
-        return "login"
+    login(@Body() dto: LoginUserDto){
+        return this.authService.signIn(dto);
     }
 
 }
