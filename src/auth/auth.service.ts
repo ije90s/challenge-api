@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +19,8 @@ export class AuthService {
         }
 
         // TODO: 해시 처리 필요
-        if(password !== user.password){
+        const isMatch = await bcrypt.compare(password, user.password);
+        if(!isMatch){
             throw new UnauthorizedException("비밀번호가 잘못되었습니다.");
         }
 

@@ -1,5 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
@@ -16,7 +17,7 @@ export class UserService {
         },
     ];
 
-    signUp(dto: CreateUserDto){
+    async signUp(dto: CreateUserDto){
         const { email, password } = dto;
         
         // DB 연결 전 확인 
@@ -26,8 +27,9 @@ export class UserService {
         }
 
         //패스워드 해싱 처리
+        const hasedPassword = await bcrypt.hash(password, 10);
 
-        return `new account : ${email}, ${password}`;
+        return `new account : ${email}, ${hasedPassword}`;
     }
 
     findOne(email: string){

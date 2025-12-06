@@ -2,6 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { UserService } from '../user/user.service'; 
 import { JwtService } from '@nestjs/jwt';
+import *  as bcrypt from 'bcrypt';
+
+jest.mock('bcrypt');
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -40,13 +43,15 @@ describe('AuthService', () => {
 
   describe('signIn', () => {
     it('jwt 토큰 성공', async () => {
-      dto = { userId: 1, email: 'test@gmail.com', password: '1234' };
+      dto = { userId: 1, email: 'test@gmail.com', password: 'hashed-1234' };
 
       mockUserService.findOne.mockResolvedValue(dto); // 응답 주입
       mockJwtService.sign.mockReturnValue('mock-token');
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
       const result = await service.signIn({ email: 'test@gmail.com', password: '1234' });
       expect(mockUserService.findOne).toHaveBeenCalledWith('test@gmail.com');
+      expect(bcrypt.compare).toHaveBeenCalledWith('1234', dto.password);
       expect(mockJwtService.sign).toHaveBeenCalledWith({ email: dto.email, sub: dto.userId });
       expect(result).toEqual({ access_token: 'mock-token' });
     });
@@ -62,6 +67,8 @@ describe('AuthService', () => {
     it('비밀번호가 틀린 경우', async () => {
       dto = { userId: 1, email: 'test@gmail.com', password: '1234' };
       mockUserService.findOne.mockResolvedValue(dto); // 응답 주입
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+      
 
       await expect(
         service.signIn({email: 'test@gmail.com', password: '1235'})
