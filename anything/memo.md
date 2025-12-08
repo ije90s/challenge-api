@@ -38,6 +38,29 @@
 | OmitType         | 특정 필드만 제외           |
 | IntersectionType | 여러 DTO를 하나로 결합      |
 
+updateDTO는 주로 ParticalType과 많이 사용하며, optional() 조건이 있기 때문에 함수의 파라미터에서 체크하기 보다는 비지니스 로직에서 실제로 값이 있을 때만 검증 수행 > 이미 CreateDTO에서 isNotEmpty()를 데코레이터를 추가하는 경우, 똑같이 updateDTO에서도 반영
+
+```javascript
+// 올바른 사용
+if (title) {
+  const checkTitle = this.findByTitle(id, title);
+  if (checkTitle) {
+      throw new UnauthorizedException("중복된 제목입니다.");
+  }
+}
+
+// 올바르지 사용 X 
+findByTitle(id: number, title?: string){
+  return this.challenges.find(challenge => challenge.challengeId !== id && challenge.title === title);
+}
+
+const checkTitle = this.findByTitle(id, title);
+if (checkTitle) {
+  throw new UnauthorizedException("중복된 제목입니다.");
+}
+
+```
+
 - TDD 
 
 | 테스트 종류            | 범위                | 검증 포인트                     | 작성 난이도 |
@@ -95,3 +118,15 @@ describe('signIn', () => {
 });
 ```
 
+- 비지니스단에서 순수 로직만 체크하는 경우에는, 간단하게 테스팅하고, 레퍼지토리나 다른 모듈 DI를 한 경우에 mock을 이용하여 체크한다. 
+
+- req 처리
+  - 형 변환
+    - 에러명: "type must be a number conforming to the specified constraints" => class-validator
+    - ValidationPipe => transform : true
+    - DTO 필드에 @Type(() => Number) 타입 명시
+  - 자동 필드 삭제
+    - ValidationPipe => whitelist : true
+    - 왜? 보안 강화, 불필요한 데이터 무시, DTO에 정의된 데이터만 서비스 로직으로 전달됨, 실수로 이상한 값 들어오는 걸 방지
+  - 정의 안 된 필드 들어오면 에러 
+    - ValidationPipe => forbidNonWhitelisted : true

@@ -1,11 +1,12 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
+import { checkDate } from '../common/util';
 
 @Injectable()
 export class ChallengeService {
 
-    private readonly challenges = [
+    private challenges = [
         {
             challengeId: 1,
             type: 0, 
@@ -30,64 +31,73 @@ export class ChallengeService {
         return this.challenges;
     }
 
-    async findOne(id: number){
-        return await this.challenges.find(challenge => challenge.challengeId == id);
+    findOne(id: number){
+        return this.challenges.find(challenge => challenge.challengeId == id);
     }
 
-    async findByTitle(title: string){
-        return await this.challenges.find(challenge => challenge.title === title);
+    findByTitle(id: number, title: string){
+        return this.challenges.find(challenge => challenge.challengeId !== id && challenge.title === title);
     }
 
-    async create(dto: CreateChallengeDto){
-        const {type, mininum_count, title, content, start_date, end_date } = dto;
-        console.log(type, mininum_count, title, content, start_date, end_date);
-
-        if(start_date > end_date){
-            throw new UnauthorizedException();
-        }
-
+    create(dto: CreateChallengeDto){
+        const {title, start_date, end_date } = dto;
+ 
         // 제목 중복 확인
-        const challenge = await this.findByTitle(title);
+        const challenge = this.findByTitle(0, title);
         if(challenge){
             throw new UnauthorizedException("중복된 제목입니다.");
         }
 
-        return 'new challenge';
+        // 날짜 확인
+        if(!checkDate(start_date, end_date)){
+            throw new UnauthorizedException("날짜 설정이 잘못되었습니다.");
+        }
+
+        const lastValue = this.challenges[this.challenges.length-1];
+        this.challenges.push({
+            challengeId: lastValue?.challengeId+1,
+            ...dto,
+        });
+
+        return this.challenges[this.challenges.length-1];
     }
 
-    async update(dto: UpdateChallengeDto, id: number){
+    update(dto: UpdateChallengeDto, id: number){
         const {title, content, start_date, end_date } = dto;
-        console.log(title, content, start_date, end_date);
+  
         // 제목 중복 확인
-        const challenge = await this.findOne(id);
+        const challenge = this.findOne(id);
         if(!challenge){
             throw new UnauthorizedException("챌린지가 없습니다.");
         }
 
-        if(challenge.title == title){
-            throw new UnauthorizedException("중복된 제목입니다.");
+        if (title) {
+            const checkTitle = this.findByTitle(id, title);
+            if (checkTitle) {
+                throw new UnauthorizedException("중복된 제목입니다.");
+            }
         }
 
-        // 날짜 체크 
-        return `update challenge ${id}`;
+        // 날짜 확인
+        if(start_date && end_date && !checkDate(start_date, end_date)){
+            throw new UnauthorizedException("날짜 설정이 잘못되었습니다.");
+        }
+
+        const updated = this.challenges.map(item => item.challengeId === id ? 
+            { ...item, title, content, start_date, end_date } : item );
+
+        return updated;
     }
 
-    async delete(id: number){
+    delete(id: number){
         // 챌린지 유무 확인
-        const challenge = await this.findOne(id);
+        const challenge = this.findOne(id);
         if(!challenge){
             throw new UnauthorizedException("챌린지가 없습니다.");
         }
 
-        return `delete challenge ${id}`;
-    }
+        const deleted = this.challenges.filter(item => item.challengeId !== id);
 
-    async getRank(id: number){
-        //챌린지 유무 확인
-        const challenge = await this.findOne(id);
-        if(!challenge){
-            throw new UnauthorizedException("챌린지가 없습니다.");
-        }
-        return `rank in fo ${id}`;
+        return deleted;
     }
 }

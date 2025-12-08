@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 import { ChallengeService } from './challenge.service';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
@@ -31,10 +31,5 @@ export class ChallengeController {
     @Get("/:id")
     findOne(@Param("id") id: number){
         return this.challengeService.findOne(id);
-    }
-
-    @Get("/:id/rank")
-    getRank(@Param("id") id: number){
-        return this.challengeService.getRank(id); 
     }
 }
