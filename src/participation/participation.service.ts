@@ -41,7 +41,7 @@ export class ParticipationService {
 
     async create(challengeId: number, userId: number, dto: CreateParticipationDto){
 
-        // 생성자 사용 필요할 것 같음
+        // 디폴트 지정
         dto.score = dto.score ?? 0;
         dto.challenge_count = dto.challenge_count ?? 0;
         dto.status = dto.status ?? 0;
@@ -78,6 +78,7 @@ export class ParticipationService {
             throw new UnauthorizedException("챌린지 포기 상태입니다.");
         }
 
+        // 디폴트 지정 - 원 값으로 지정
         dto.score = dto.score ?? participation.score;
         dto.challenge_count = dto.challenge_count ?? participation.challenge_count;
         dto.status = dto.status ?? participation.status;
