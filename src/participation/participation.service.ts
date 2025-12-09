@@ -1,0 +1,114 @@
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { CreateParticipationDto } from './dto/create-participation.dto';
+import { UpdateParticipationDto } from './dto/update-participation.dto';
+
+@Injectable()
+export class ParticipationService {
+
+    private participations = [
+        {
+            participation_id: 1,
+            user_id: 1,
+            challenge_id: 1,
+            score: 0,
+            challenge_count: 0,
+            status: 0,
+            complete_date: null
+        },
+        {
+            participation_id: 2,
+            user_id: 2,
+            challenge_id: 1,
+            score: 2,
+            challenge_count: 0, 
+            status: 0,
+            complete_date: null
+        }
+    ];
+
+    findOne(challengeId: number, userId: number){
+        return this.participations.find(item => item.challenge_id === challengeId && item.user_id === userId);
+    }
+
+    async create(challengeId: number, userId: number, dto: CreateParticipationDto){
+        dto.score = dto.score ?? 0;
+        dto.challenge_count = dto.challenge_count ?? 0;
+        dto.status = dto.status ?? 0;
+
+        const participation = await this.findOne(challengeId, userId);
+
+        if(participation){
+            throw new UnauthorizedException("이미 참가중입니다.");
+        }
+
+        const lastValue = this.participations[this.participations.length-1];
+        this.participations.push({
+            participation_id: lastValue.participation_id + 1,
+            user_id: userId,
+            challenge_id: challengeId,
+            score: dto.score,
+            challenge_count: dto.challenge_count,
+            status: dto.status,
+            complete_date: null,
+        });
+
+        return this.participations[this.participations.length-1];
+    }
+
+    async update(challengeId: number, userId: number, dto: UpdateParticipationDto){
+        
+        const participation = await this.findOne(challengeId, userId);
+        if(!participation){
+            throw new UnauthorizedException("참가하지 않았습니다.");
+        }
+        
+        if(participation.status === 2){
+            throw new UnauthorizedException("챌린지 포기 상태입니다.");
+        }
+
+        dto.score = dto.score ?? participation.score;
+        dto.challenge_count = dto.challenge_count ?? participation.challenge_count;
+        dto.status = dto.status ?? participation.status;
+        dto.complete_date = dto.complete_date ?? null;
+        
+        const updated = this.participations.map(item => item.challenge_id === challengeId && item.user_id === userId ? 
+            { ...item, score: dto.score, challenge_count: dto.challenge_count, status: dto.status, complete_date: dto.complete_date } : item );
+
+        return updated;
+    }
+
+    async updateStatus(challengeId: number, userId: number){
+        
+        const participation = await this.findOne(challengeId, userId);
+        if(!participation){
+            throw new UnauthorizedException("참가하지 않았습니다.");
+        }
+
+        const status = participation.status === 2 ? 0 : 2;
+
+        this.participations = this.participations.map(item =>
+        item.challenge_id === challengeId && item.user_id === userId
+            ? { ...item, status }
+            : item
+        );
+
+        return this.participations;
+
+    }
+
+    async getChallengeRank(challengeId: number, userId: number){
+
+        const participation = await this.findOne(challengeId, userId);
+        if(!participation){
+            throw new UnauthorizedException("참가하지 않았습니다.");
+        }
+
+        const list = this.participations.filter(item => item.challenge_id === challengeId).sort((a, b) => b.participation_id - a.participation_id);
+
+        return list;
+    }
+
+    getMyChallenge(userId: number){
+        return this.participations.find(item => item.user_id == userId);
+    }
+}
