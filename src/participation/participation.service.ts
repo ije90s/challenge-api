@@ -13,7 +13,7 @@ export class ParticipationService {
             score: 0,
             challenge_count: 0,
             status: 0,
-            complete_date: null
+            complete_date: ''
         },
         {
             participation_id: 2,
@@ -22,7 +22,16 @@ export class ParticipationService {
             score: 2,
             challenge_count: 0, 
             status: 0,
-            complete_date: null
+            complete_date: ''
+        },
+        {
+            participation_id: 3,
+            user_id: 3,
+            challenge_id: 1,
+            score: 2,
+            challenge_count: 0, 
+            status: 2,
+            complete_date: ''
         }
     ];
 
@@ -31,9 +40,12 @@ export class ParticipationService {
     }
 
     async create(challengeId: number, userId: number, dto: CreateParticipationDto){
+
+        // 생성자 사용 필요할 것 같음
         dto.score = dto.score ?? 0;
         dto.challenge_count = dto.challenge_count ?? 0;
         dto.status = dto.status ?? 0;
+        dto.complete_date = dto.complete_date ?? '';
 
         const participation = await this.findOne(challengeId, userId);
 
@@ -49,7 +61,7 @@ export class ParticipationService {
             score: dto.score,
             challenge_count: dto.challenge_count,
             status: dto.status,
-            complete_date: null,
+            complete_date: dto.complete_date
         });
 
         return this.participations[this.participations.length-1];
@@ -69,7 +81,7 @@ export class ParticipationService {
         dto.score = dto.score ?? participation.score;
         dto.challenge_count = dto.challenge_count ?? participation.challenge_count;
         dto.status = dto.status ?? participation.status;
-        dto.complete_date = dto.complete_date ?? null;
+        dto.complete_date = dto.complete_date ?? participation.complete_date;
         
         const updated = this.participations.map(item => item.challenge_id === challengeId && item.user_id === userId ? 
             { ...item, score: dto.score, challenge_count: dto.challenge_count, status: dto.status, complete_date: dto.complete_date } : item );
