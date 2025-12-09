@@ -38,16 +38,27 @@
 | OmitType         | 특정 필드만 제외           |
 | IntersectionType | 여러 DTO를 하나로 결합      |
 
-updateDTO는 주로 ParticalType과 많이 사용하며, optional() 조건이 있기 때문에 함수의 파라미터에서 체크하기 보다는 비지니스 로직에서 실제로 값이 있을 때만 검증 수행 > 이미 CreateDTO에서 isNotEmpty()를 데코레이터를 추가하는 경우, 똑같이 updateDTO에서도 반영
+updateDTO는 주로 ParticalType과 많이 사용하며, optional() 조건이 있기 때문에 함수의 파라미터에서 체크하기 보다는 비지니스 로직에서 실제로 값이 있을 때만 검증 수행 > 이미 CreateDTO에서 isNotEmpty()를 데코레이터를 추가하는 경우, 똑같이 updateDTO에서도 반영 or isNotEmpty() 데코레이터가 없는 경우에는 ? 붙어 명확하게 값 유무를 표시
 
 ```javascript
-// 올바른 사용
+// 올바른 사용 
+// IsNotEmpty(): 명확하게 조건 걸어서 체크
 if (title) {
   const checkTitle = this.findByTitle(id, title);
   if (checkTitle) {
       throw new UnauthorizedException("중복된 제목입니다.");
   }
 }
+
+// IsOptional(): dto에 값 유무 표시 + 비지니스 로직에서 디폴트 값 설정
+export class DTO {
+  @IsString()
+  @IsOptional()
+  complete_date?: string;
+}
+
+// 비지니스 로직
+dto.complete_date = dto.complete_date ?? participation.complete_date;
 
 // 올바르지 사용 X 
 findByTitle(id: number, title?: string){
