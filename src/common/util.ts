@@ -1,3 +1,4 @@
+// 날짜 입력값 확인
 export const checkDate = (startDate: string, endDate: string): boolean => {
   const newStartDate = new Date(startDate);
   const newEndDate = new Date(endDate);
@@ -14,4 +15,13 @@ export const checkDate = (startDate: string, endDate: string): boolean => {
   }
 
   return true;
+};
+
+// 날짜 지났는지 확인
+export const checkThePast = (strday: string): boolean => {
+  const today = new Date();
+  const inputDay = new Date(strday);
+
+  return inputDay < today;
+
 };

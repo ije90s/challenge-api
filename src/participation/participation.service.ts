@@ -1,9 +1,14 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateParticipationDto } from './dto/create-participation.dto';
 import { UpdateParticipationDto } from './dto/update-participation.dto';
+import { ChallengeService } from '../challenge/challenge.service';
+import { checkThePast } from '../common/util';
+
 
 @Injectable()
 export class ParticipationService {
+
+    constructor(private readonly challegneService: ChallengeService){}
 
     private participations = [
         {
@@ -41,17 +46,25 @@ export class ParticipationService {
 
     async create(challengeId: number, userId: number, dto: CreateParticipationDto){
 
+        const challenge = await this.challegneService.findOne(challengeId);
+        if(!challenge){
+            throw new UnauthorizedException("챌린지가 존재하지 않습니다.");
+        }
+
+        if(!checkThePast(challenge.end_date)){
+            throw new UnauthorizedException("기간이 지났습니다.");
+        }
+
+        const participation = await this.findOne(challengeId, userId);
+        if(participation){
+            throw new UnauthorizedException("이미 참가중입니다.");
+        }
+
         // 디폴트 지정
         dto.score = dto.score ?? 0;
         dto.challenge_count = dto.challenge_count ?? 0;
         dto.status = dto.status ?? 0;
         dto.complete_date = dto.complete_date ?? '';
-
-        const participation = await this.findOne(challengeId, userId);
-
-        if(participation){
-            throw new UnauthorizedException("이미 참가중입니다.");
-        }
 
         const lastValue = this.participations[this.participations.length-1];
         this.participations.push({
@@ -68,6 +81,15 @@ export class ParticipationService {
     }
 
     async update(challengeId: number, userId: number, dto: UpdateParticipationDto){
+
+        const challenge = await this.challegneService.findOne(challengeId);
+        if(!challenge){
+            throw new UnauthorizedException("챌린지가 존재하지 않습니다.");
+        }
+
+        if(!checkThePast(challenge.end_date)){
+            throw new UnauthorizedException("기간이 지났습니다.");
+        }
         
         const participation = await this.findOne(challengeId, userId);
         if(!participation){

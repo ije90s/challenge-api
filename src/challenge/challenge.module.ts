@@ -4,6 +4,7 @@ import { ChallengeService } from './challenge.service';
 
 @Module({
   controllers: [ChallengeController],
-  providers: [ChallengeService]
+  providers: [ChallengeService],
+  exports: [ChallengeService]
 })
 export class ChallengeModule {}
