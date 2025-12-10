@@ -90,7 +90,7 @@ describe('FeedService', () => {
 
     it("피드 생성", async () => {
       const dto = { challenge_id: 1, title: '테스트3', content: '테스트3' };
-      result = await service.create(1, dto);
+      result = await service.create(1, dto, []);
 
       expect(mockChallengeService.findOne).toHaveBeenCalledWith(1);
       expect(checkThePast as jest.Mock).toHaveBeenCalledWith(challenge.end_date);
@@ -101,25 +101,25 @@ describe('FeedService', () => {
     it("챌린지가 없는 경우", async () => {
       const dto = { challenge_id: 1, title: '테스트3', content: '테스트3' };
       mockChallengeService.findOne.mockResolvedValue(null);
-      await expect(service.create(1, dto)).rejects.toThrow("챌린지가 없습니다.");
+      await expect(service.create(1, dto, [])).rejects.toThrow("챌린지가 없습니다.");
     });
 
     it("기간 만료인 경우", async () => {
       const dto = { challenge_id: 1, title: '테스트3', content: '테스트3' };
       (checkThePast as jest.Mock).mockReturnValue(false);
-      await expect(service.create(1, dto)).rejects.toThrow("기간이 지났습니다.");
+      await expect(service.create(1, dto, [])).rejects.toThrow("기간이 지났습니다.");
     });
 
     it("제목이 중복인 경우", async () => {
       const dto = { challenge_id: 1, title: '테스트2', content: '테스트' };
-      await expect(service.create(1, dto)).rejects.toThrow("중복된 제목입니다.");
+      await expect(service.create(1, dto, [])).rejects.toThrow("중복된 제목입니다.");
     });
   });
 
   describe("update", () => {
     it("피드 수정", async () => {
       const dto = { title: '테스트3', content: '테스트3' };
-      result = await service.update(1, dto);
+      result = await service.update(1, dto, []);
       expect(result.title).toBe('테스트3');
       expect(result.content).toBe('테스트3');
       expect(result.images).toStrictEqual([]);
@@ -127,12 +127,12 @@ describe('FeedService', () => {
 
     it("피드가 없는 경우", async () => {
       const dto = { title: '테스트3', content: '테스트3' };
-      await expect(() => service.update(3, dto)).rejects.toThrow("피드가 없습니다.");
+      await expect(() => service.update(3, dto, [])).rejects.toThrow("피드가 없습니다.");
     });
 
     it("제목이 중복인 경우", async () => {
       const dto = { title: '테스트2', content: '테스트2' };
-      await expect(() => service.update(1, dto)).rejects.toThrow("중복된 제목입니다.");
+      await expect(() => service.update(1, dto, [])).rejects.toThrow("중복된 제목입니다.");
     });
   });
 

@@ -1,7 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { FeedService } from './feed.service';
 import { CreateFeedDto } from './dto/create-feed.dto';
 import { UpdateFeedDto } from './dto/update-feed.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { multerOptions } from "../common/util";
 
 @Controller('feed')
 export class FeedController {
@@ -18,14 +20,17 @@ export class FeedController {
         return this.feedService.findOne(feedId);
     }
 
+    // TODO: multer 예외 처리 추가 
     @Post(":userId")
-    createFeed(@Param("userId") userId: number, @Body() dto: CreateFeedDto){
-        return this.feedService.create(userId, dto);
+    @UseInterceptors(FilesInterceptor('images', 3, multerOptions("feed")))
+    createFeed(@Param("userId") userId: number, @Body() dto: CreateFeedDto, @UploadedFiles() images: Array<Express.Multer.File>){
+        return this.feedService.create(userId, dto, images);
     }
 
     @Patch(":feedId")
-    updateFeed(@Param("feedId") feedId: number, @Body() dto: UpdateFeedDto){
-        return this.feedService.update(feedId, dto);
+    @UseInterceptors(FilesInterceptor('images', 3, multerOptions("feed")))
+    updateFeed(@Param("feedId") feedId: number, @Body() dto: UpdateFeedDto, @UploadedFiles() images: Array<Express.Multer.File>){
+        return this.feedService.update(feedId, dto, images);
     }
 
     @Delete(":feedId")

@@ -49,9 +49,7 @@ export class FeedService {
         return this.feeds.find(item => item.feed_id !== feedId && item.title === title);
     }
 
-    async create(userId: number, dto: CreateFeedDto){
-        dto.images = dto.images ?? [];
-
+    async create(userId: number, dto: CreateFeedDto, images: Express.Multer.File[]){
         const challenge = await this.challengeService.findOne(dto.challenge_id);
         if(!challenge){
             throw new UnauthorizedException("챌린지가 없습니다.");
@@ -66,6 +64,14 @@ export class FeedService {
             throw new UnauthorizedException("중복된 제목입니다.");
         }
 
+        const fileNameArr: string[] = [];
+        if(images){
+            images.map(item => {
+                fileNameArr.push(`feed/${item.filename}`);
+            });
+        }
+        dto.images = fileNameArr;
+
         const lastValue = this.feeds[this.feeds.length-1];
         this.feeds.push({
             feed_id: lastValue.feed_id+ 1,
@@ -79,7 +85,7 @@ export class FeedService {
         return this.feeds[this.feeds.length-1];
     }
 
-    async update(feedId: number, dto: UpdateFeedDto){
+    async update(feedId: number, dto: UpdateFeedDto, images: Express.Multer.File[]){
         const feed = await this.findOne(feedId);
         if(!feed){
             throw new UnauthorizedException("피드가 없습니다.");
@@ -90,14 +96,24 @@ export class FeedService {
             throw new UnauthorizedException("중복된 제목입니다.");
         }
 
-        dto.images = dto.images ?? feed.images;
-        const updated = this.feeds.map(item => 
-            item.feed_id === feedId ? 
-            { ...item, title: dto.title, content: dto.content, images: dto.images } 
-            : item );
-
-
-        return updated.find(item => item.feed_id === feedId);
+        // 기존 이미지는 삭제 > 새 이미지 업로드
+        const fileNameArr: string[] = [];
+        if(images){
+            images.map(item => {
+                fileNameArr.push(`feed/${item.filename}`);
+            });
+        };
+        console.log(fileNameArr, feed.images);
+        dto.images = fileNameArr ?? feed.images;
+        for(let item of this.feeds){
+            if (item.feed_id === feedId){
+                item.title = dto.title;
+                item.content = dto.content;
+                item.images = dto.images;
+            }
+        }
+  
+        return this.findOne(feedId);
 
     }
 
