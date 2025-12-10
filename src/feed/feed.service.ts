@@ -103,7 +103,7 @@ export class FeedService {
                 fileNameArr.push(`feed/${item.filename}`);
             });
         };
-        console.log(fileNameArr, feed.images);
+    
         dto.images = fileNameArr ?? feed.images;
         for(let item of this.feeds){
             if (item.feed_id === feedId){
