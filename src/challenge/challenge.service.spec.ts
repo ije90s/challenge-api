@@ -1,11 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ChallengeService } from './challenge.service';
-import {  checkDate } from "../common/util";
-import { create } from 'node:domain';
 
 describe('ChallengeService', () => {
   let service: ChallengeService;
-  let challenges: any[];
   let result: any;
 
   beforeEach(async () => {
@@ -14,27 +11,6 @@ describe('ChallengeService', () => {
     }).compile();
 
     service = module.get<ChallengeService>(ChallengeService);
-
-    challenges = [
-        {
-            challengeId: 1,
-            type: 0, 
-            mininum_count: 1,
-            title: '테스트',
-            content: '테스트',
-            start_date: '2025-12-01',
-            end_date: '2025-12-31'
-        },
-        {
-            challengeId: 2,
-            type: 1, 
-            mininum_count: 1,
-            title: '테스트2',
-            content: '테스트2',
-            start_date: '2025-12-01',
-            end_date: '2025-12-20'
-        },
-    ]
   });
 
   it('should be defined', () => {
@@ -82,7 +58,7 @@ describe('ChallengeService', () => {
         start_date: '2025-12-01',
         end_date: '2025-12-05'
       };
-      result = service.create(dto);
+      result = service.create(1, dto);
       expect(result.challengeId).toBe(3);
       expect(result.title).toBe('테스트3');
     });
@@ -97,7 +73,7 @@ describe('ChallengeService', () => {
         end_date: '2025-12-05'
       };
 
-      expect(() => service.create(dto)).toThrow("중복된 제목입니다.");
+      expect(() => service.create(1, dto)).toThrow("중복된 제목입니다.");
     });
 
     it('끝일이 작은 경우', () => {
@@ -110,7 +86,7 @@ describe('ChallengeService', () => {
         end_date: '2025-11-30'
       };
 
-      expect(() => service.create(dto)).toThrow("날짜 설정이 잘못되었습니다.");
+      expect(() => service.create(1, dto)).toThrow("날짜 설정이 잘못되었습니다.");
     });
 
     it('날짜 포맷이 잘못된 경우', () => {
@@ -123,7 +99,7 @@ describe('ChallengeService', () => {
         end_date: '2025-12-05'
       };
 
-      expect(() => service.create(dto)).toThrow("날짜 설정이 잘못되었습니다.");
+      expect(() => service.create(1, dto)).toThrow("날짜 설정이 잘못되었습니다.");
     });
   });
 
@@ -137,9 +113,8 @@ describe('ChallengeService', () => {
       };
       const challengeId = 2;
 
-      result = service.update(dto, challengeId);
-      const updated = result.filter(item => item.challengeId === challengeId);
-      expect(updated[0].title).toBe('테스트3');
+      result = service.update(challengeId, dto);
+      expect(result.title).toBe('테스트3');
     });
 
     it('챌린지가 없는 경우', () => {
@@ -151,7 +126,7 @@ describe('ChallengeService', () => {
       };
       const challengeId = 3;
 
-      expect(() => service.update(dto, challengeId)).toThrow("챌린지가 없습니다.");
+      expect(() => service.update(challengeId, dto)).toThrow("챌린지가 없습니다.");
     });
 
     it("제목이 중복인 경우", () => {
@@ -162,7 +137,7 @@ describe('ChallengeService', () => {
         end_date: '2025-12-05'
       };
       const challengeId = 2;
-      expect(() => service.update(dto, challengeId)).toThrow("중복된 제목입니다.");
+      expect(() => service.update(challengeId, dto)).toThrow("중복된 제목입니다.");
     });
 
     it("날짜가 잘못된 경우", () => {
@@ -174,7 +149,7 @@ describe('ChallengeService', () => {
       };
       const challengeId = 2;
 
-      expect(() => service.update(dto, challengeId)).toThrow("날짜 설정이 잘못되었습니다.");
+      expect(() => service.update(challengeId, dto)).toThrow("날짜 설정이 잘못되었습니다.");
     });
   });
 
