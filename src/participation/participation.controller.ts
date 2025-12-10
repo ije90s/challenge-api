@@ -1,35 +1,38 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CreateParticipationDto } from './dto/create-participation.dto';
 import { ParticipationService } from './participation.service';
 import { UpdateParticipationDto } from './dto/update-participation.dto';
+import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
+import { User } from '../common/user.decorator';
 
+@UseGuards(JwtAuthGuard)
 @Controller('participation')
 export class ParticipationController {
 
     constructor(private readonly participationService: ParticipationService){}
     
-    @Post("challenge/:challengeId/:userId")
-    joinChallenge(@Param("challengeId") challengeId: number, @Param("userId") userId: number, @Body() dto: CreateParticipationDto){
-        return this.participationService.create(challengeId, userId, dto);
+    @Post("challenge/:challengeId")
+    joinChallenge(@Param("challengeId") challengeId: number, @User() user, @Body() dto: CreateParticipationDto){
+        return this.participationService.create(challengeId, user.userId, dto);
     }
 
-    @Patch("challenge/:challengeId/:userId")
-    updateChallenge(@Param("challengeId") challengeId: number, @Param("userId") userId: number, @Body() dto: UpdateParticipationDto){
-        return this.participationService.update(challengeId, userId, dto);
+    @Patch("challenge/:challengeId")
+    updateChallenge(@Param("challengeId") challengeId: number, @User() user, @Body() dto: UpdateParticipationDto){
+        return this.participationService.update(user.userId, challengeId, dto);
     }
 
-    @Patch("giveup/:challengeId/:userId")
-    giveupChallenge(@Param("challengeId") challengeId: number, @Param("userId") userId: number){
-        return this.participationService.updateStatus(challengeId, userId);
+    @Patch("giveup/:challengeId")
+    giveupChallenge(@Param("challengeId") challengeId: number, @User() user){
+        return this.participationService.updateStatus(challengeId, user.userId);
     }
 
-    @Get("rank/:challengeId/:userId")
-    getChallengeRank(@Param("challengeId") challengeId: number, @Param("userId") userId: number){
-        return this.participationService.getChallengeRank(challengeId, userId);
+    @Get("rank/:challengeId")
+    getChallengeRank(@Param("challengeId") challengeId: number, @User() user){
+        return this.participationService.getChallengeRank(challengeId, user.userId);
     }
 
-    @Get("mine/:userId")
-    getMyChallenge(@Param("userId") userId: number){
-        return this.participationService.getMyChallenge(userId);
+    @Get("mine")
+    getMyChallenge(@User() user){
+        return this.participationService.getMyChallenge(user.userId);
     }
 }

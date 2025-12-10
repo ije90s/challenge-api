@@ -1,8 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 import { ChallengeService } from './challenge.service';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
+import { User } from '../common/user.decorator';
+import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('challenge')
 export class ChallengeController {
 
@@ -14,22 +17,22 @@ export class ChallengeController {
     }
 
     @Post()
-    create(@Body() dto: CreateChallengeDto){
-        return this.challengeService.create(dto);
+    create(@User() user, @Body() dto: CreateChallengeDto){
+        return this.challengeService.create(user.userId, dto);
     }
 
-    @Put("/:id")
-    modify(@Body() dto: UpdateChallengeDto, @Param("id") id: number){
-        return this.challengeService.update(dto, id);
+    @Patch(":challengeId")
+    modify(@Body() dto: UpdateChallengeDto, @Param("challengeId") challengeId: number){
+        return this.challengeService.update(challengeId, dto);
     }
 
-    @Delete("/:id")
-    delete(@Param("id") id: number){
-        return this.challengeService.delete(id);
+    @Delete(":challengeId")
+    delete(@Param("challengeId") challengeId: number){
+        return this.challengeService.delete(challengeId);
     }
 
-    @Get("/:id")
-    findOne(@Param("id") id: number){
-        return this.challengeService.findOne(id);
+    @Get(":challengeId")
+    findOne(@Param("challengeId") challengeId: number){
+        return this.challengeService.findOne(challengeId);
     }
 }
