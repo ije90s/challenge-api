@@ -6,7 +6,7 @@ import { checkThePast } from '../common/util';
 
 type Feed = {
     feed_id: number;
-    user_id: number;
+    author: number;
     challenge_id: number;
     title: string;
     content: string;
@@ -21,7 +21,7 @@ export class FeedService {
         private feeds: Feed[] = [
         {
             feed_id: 1,
-            user_id: 1, 
+            author: 1, 
             challenge_id: 1, 
             title: "테스트",
             content: "테스트",
@@ -29,7 +29,7 @@ export class FeedService {
         },
         {
             feed_id: 2,
-            user_id: 2, 
+            author: 2, 
             challenge_id: 1, 
             title: "테스트2",
             content: "테스트2",
@@ -75,7 +75,7 @@ export class FeedService {
         const lastValue = this.feeds[this.feeds.length-1];
         this.feeds.push({
             feed_id: lastValue.feed_id+ 1,
-            user_id: userId,
+            author: userId,
             challenge_id: dto.challenge_id,
             title: dto.title,
             content: dto.content,

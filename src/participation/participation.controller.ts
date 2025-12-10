@@ -27,7 +27,7 @@ export class ParticipationController {
     }
 
     @Get("rank/:challengeId")
-    getChallengeRank(@Param(."challengeId") challengeId: number, @User() user){
+    getChallengeRank(@Param("challengeId") challengeId: number, @User() user){
         return this.participationService.getChallengeRank(challengeId, user.userId);
     }
 
