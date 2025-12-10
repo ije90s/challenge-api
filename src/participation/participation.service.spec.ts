@@ -66,6 +66,7 @@ describe('ParticipationService', () => {
     };
 
     beforeEach(() => {
+      jest.clearAllMocks();                 
       mockChallengeService.findOne.mockResolvedValue(challenge);
       (checkThePast as jest.Mock).mockReturnValue(true);
     });

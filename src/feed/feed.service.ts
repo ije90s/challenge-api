@@ -1,6 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateFeedDto } from './dto/create-feed.dto';
 import { UpdateFeedDto } from './dto/update-feed.dto';
+import { ChallengeService } from '../challenge/challenge.service';
+import { checkThePast } from '../common/util';
 
 type Feed = {
     feed_id: number;
@@ -13,6 +15,8 @@ type Feed = {
 
 @Injectable()
 export class FeedService {
+
+    constructor(private readonly challengeService: ChallengeService){}
 
         private feeds: Feed[] = [
         {
@@ -47,6 +51,15 @@ export class FeedService {
 
     async create(userId: number, dto: CreateFeedDto){
         dto.images = dto.images ?? [];
+
+        const challenge = await this.challengeService.findOne(dto.challenge_id);
+        if(!challenge){
+            throw new UnauthorizedException("챌린지가 없습니다.");
+        }
+
+        if(!checkThePast(challenge.end_date)){
+            throw new UnauthorizedException("기간이 지났습니다.");
+        }
 
         const feed = await this.findByTitle(0, dto.title);
         if(feed){
