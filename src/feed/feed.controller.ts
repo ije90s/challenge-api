@@ -32,12 +32,12 @@ export class FeedController {
 
     @Patch(":feedId")
     @UseInterceptors(FilesInterceptor('images', 3, multerOptions("feed")))
-    updateFeed(@Param("feedId") feedId: number, @Body() dto: UpdateFeedDto, @UploadedFiles() images: Array<Express.Multer.File>){
-        return this.feedService.update(feedId, dto, images);
+    updateFeed(@Param("feedId") feedId: number, @User() user, @Body() dto: UpdateFeedDto, @UploadedFiles() images: Array<Express.Multer.File>){
+        return this.feedService.update(feedId, user.userId, dto, images);
     }
 
     @Delete(":feedId")
-    deleteFeed(@Param("feedId") feedId: number){
-        return this.feedService.delete(feedId);
+    deleteFeed(@Param("feedId") feedId: number, @User() user){
+        return this.feedService.delete(feedId, user.userId);
     }
 }
