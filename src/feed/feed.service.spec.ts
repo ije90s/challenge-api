@@ -119,7 +119,7 @@ describe('FeedService', () => {
   describe("update", () => {
     it("피드 수정", async () => {
       const dto = { title: '테스트3', content: '테스트3' };
-      result = await service.update(1, dto, []);
+      result = await service.update(1, 1, dto, []);
       expect(result.title).toBe('테스트3');
       expect(result.content).toBe('테스트3');
       expect(result.images).toStrictEqual([]);
@@ -127,24 +127,24 @@ describe('FeedService', () => {
 
     it("피드가 없는 경우", async () => {
       const dto = { title: '테스트3', content: '테스트3' };
-      await expect(() => service.update(3, dto, [])).rejects.toThrow("피드가 없습니다.");
+      await expect(() => service.update(3, 1, dto, [])).rejects.toThrow("피드가 없습니다.");
     });
 
     it("제목이 중복인 경우", async () => {
       const dto = { title: '테스트2', content: '테스트2' };
-      await expect(() => service.update(1, dto, [])).rejects.toThrow("중복된 제목입니다.");
+      await expect(() => service.update(1, 1, dto, [])).rejects.toThrow("중복된 제목입니다.");
     });
   });
 
   describe("delete", () => {
     it("피드 삭제", async () => {
-      result = await service.delete(1);
+      result = await service.delete(1,1);
       const pickOne = result.find(item => item.feed_id == 1);
       expect(pickOne).toBeUndefined();
     });
 
     it("피드가 없는 경우", async () => {
-      await expect(() => service.delete(3)).rejects.toThrow("피드가 없습니다.");
+      await expect(() => service.delete(3,1)).rejects.toThrow("피드가 없습니다.");
     })
   });
 });

@@ -22,13 +22,13 @@ export class ChallengeController {
     }
 
     @Patch(":challengeId")
-    modify(@Body() dto: UpdateChallengeDto, @Param("challengeId") challengeId: number){
-        return this.challengeService.update(challengeId, dto);
+    modify(@Body() dto: UpdateChallengeDto, @User() user,  @Param("challengeId") challengeId: number){
+        return this.challengeService.update(challengeId, user.userId, dto);
     }
 
     @Delete(":challengeId")
-    delete(@Param("challengeId") challengeId: number){
-        return this.challengeService.delete(challengeId);
+    delete(@Param("challengeId") challengeId: number, @User() user){
+        return this.challengeService.delete(challengeId, user.userId);
     }
 
     @Get(":challengeId")

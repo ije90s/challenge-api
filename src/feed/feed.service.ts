@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateFeedDto } from './dto/create-feed.dto';
 import { UpdateFeedDto } from './dto/update-feed.dto';
 import { ChallengeService } from '../challenge/challenge.service';
@@ -85,12 +85,16 @@ export class FeedService {
         return this.feeds[this.feeds.length-1];
     }
 
-    async update(feedId: number, dto: UpdateFeedDto, images: Express.Multer.File[]){
+    async update(feedId: number, userId: number, dto: UpdateFeedDto, images: Express.Multer.File[]){
         const feed = await this.findOne(feedId);
         if(!feed){
             throw new UnauthorizedException("피드가 없습니다.");
         }
 
+        if(feed.author !== userId){
+            throw new ForbiddenException("작성자만 접근 가능합니다.");
+        }
+        
         const checkTitle = this.findByTitle(feedId, dto.title);
         if (checkTitle) {
             throw new UnauthorizedException("중복된 제목입니다.");
@@ -117,10 +121,14 @@ export class FeedService {
 
     }
 
-    async delete(feedId: number){
+    async delete(feedId: number, userId: number){
         const feed = await this.findOne(feedId);
         if(!feed){
             throw new UnauthorizedException("피드가 없습니다.");
+        }
+
+        if(feed.author !== userId){
+            throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
 
         this.feeds = this.feeds.filter(item => item.feed_id !== feedId);

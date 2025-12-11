@@ -113,7 +113,7 @@ describe('ChallengeService', () => {
       };
       const challengeId = 2;
 
-      result = service.update(challengeId, dto);
+      result = service.update(challengeId, 2, dto);
       expect(result.title).toBe('테스트3');
     });
 
@@ -126,7 +126,7 @@ describe('ChallengeService', () => {
       };
       const challengeId = 3;
 
-      expect(() => service.update(challengeId, dto)).toThrow("챌린지가 없습니다.");
+      expect(() => service.update(challengeId, 1, dto)).toThrow("챌린지가 없습니다.");
     });
 
     it("제목이 중복인 경우", () => {
@@ -137,7 +137,7 @@ describe('ChallengeService', () => {
         end_date: '2025-12-05'
       };
       const challengeId = 2;
-      expect(() => service.update(challengeId, dto)).toThrow("중복된 제목입니다.");
+      expect(() => service.update(challengeId, 2, dto)).toThrow("중복된 제목입니다.");
     });
 
     it("날짜가 잘못된 경우", () => {
@@ -149,18 +149,18 @@ describe('ChallengeService', () => {
       };
       const challengeId = 2;
 
-      expect(() => service.update(challengeId, dto)).toThrow("날짜 설정이 잘못되었습니다.");
+      expect(() => service.update(challengeId, 2, dto)).toThrow("날짜 설정이 잘못되었습니다.");
     });
   });
 
   describe("delete", () => {
     it("챌린지 삭제 성공", () => {
-      const result = service.delete(1);
+      const result = service.delete(1, 1);
       expect(result.every(item => item.challengeId === 1)).toBeFalsy();
     });
 
     it('챌린지가 없는 경우', () => {
-      expect(() => service.delete(3)).toThrow("챌린지가 없습니다.");
+      expect(() => service.delete(3, 1)).toThrow("챌린지가 없습니다.");
     })
   });
 });

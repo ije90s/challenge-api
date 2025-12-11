@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
 import { checkDate } from '../common/util';
@@ -65,12 +65,16 @@ export class ChallengeService {
         return this.challenges[this.challenges.length-1];
     }
 
-    update(challengeId: number, dto: UpdateChallengeDto){
+    update(challengeId: number, userId: number, dto: UpdateChallengeDto){
         const {title, content, start_date, end_date } = dto;
   
         const challenge = this.findOne(challengeId);
         if(!challenge){
             throw new UnauthorizedException("챌린지가 없습니다.");
+        }
+
+        if(challenge.author !== userId){
+            throw new ForbiddenException("작성자만 접근 가능힙니다.");
         }
 
         // 제목 중복 확인
@@ -104,11 +108,15 @@ export class ChallengeService {
         return this.findOne(challengeId);
     }
 
-    delete(challengeId: number){
+    delete(challengeId: number, userId: number){
         // 챌린지 유무 확인
         const challenge = this.findOne(challengeId);
         if(!challenge){
             throw new UnauthorizedException("챌린지가 없습니다.");
+        }
+
+        if(challenge.author !== userId){
+            throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
 
         const deleted = this.challenges.filter(item => item.challengeId !== challengeId);
