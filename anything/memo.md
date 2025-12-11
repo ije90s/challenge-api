@@ -142,3 +142,16 @@ describe('signIn', () => {
     - 왜? 보안 강화, 불필요한 데이터 무시, DTO에 정의된 데이터만 서비스 로직으로 전달됨, 실수로 이상한 값 들어오는 걸 방지
   - 정의 안 된 필드 들어오면 에러 
     - ValidationPipe => forbidNonWhitelisted : true
+
+- 미들웨어 위치
+
+| 항목          | main.ts `app.use()` | AppModule 미들웨어             |
+| ----------- | ------------------- | -------------------------- |
+| 실행 위치       | Express 미들웨어        | NestJS 미들웨어                |
+| Logger DI   | ❌ 불가                | ✔ 가능                       |
+| Nest Logger | 직접 생성해야 함           | 자동으로 context와 함께 사용        |
+| DI 서비스 사용   | ❌ 불가                | ✔ 가능 (DB, Config, Redis 등) |
+| 라우트 선택 적용   | 불가 (전역만 가능)         | 가능 (`forRoutes`)           |
+| 구조적 확장성     | 낮음                  | 매우 높음                      |
+| Nest 컨텍스트   | 포함 안 됨              | 포함 됨                       |
+| 실무 적합성      | 낮음                  | 매우 높음                      |
