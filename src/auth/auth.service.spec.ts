@@ -8,12 +8,10 @@ jest.mock('bcrypt');
 
 describe('AuthService', () => {
   let service: AuthService;
-  let dto: any;
-  let result: any;
 
   // DI 시킨 provider는 페이크 함수 처리
   const mockUserService = {
-   findOne: jest.fn(),
+   findOneBy: jest.fn(),
   };
 
   const mockJwtService = {
@@ -42,37 +40,37 @@ describe('AuthService', () => {
   });
 
   describe('signIn', () => {
-    it('jwt 토큰 성공', async () => {
-      dto = { userId: 1, email: 'test@gmail.com', password: 'hashed-1234' };
+    const email = 'test@gmail.com';
+    const password = '1234';
+    const hasedPassword = 'hashed-1234';
 
-      mockUserService.findOne.mockResolvedValue(dto); // 응답 주입
+    beforeEach(() => {
+      jest.clearAllMocks();           
+    });
+
+    it('jwt 토큰 성공', async () => {
+      mockUserService.findOneBy.mockResolvedValue({user_id: 1, email, password: hasedPassword }); // 응답 주입
       mockJwtService.sign.mockReturnValue('mock-token');
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      const result = await service.signIn({ email: 'test@gmail.com', password: '1234' });
-      expect(mockUserService.findOne).toHaveBeenCalledWith('test@gmail.com');
-      expect(bcrypt.compare).toHaveBeenCalledWith('1234', dto.password);
-      expect(mockJwtService.sign).toHaveBeenCalledWith({ email: dto.email, sub: dto.userId });
+      const result = await service.signIn({ email, password });
+      expect(mockUserService.findOneBy).toHaveBeenCalledWith(email);
+      expect(bcrypt.compare).toHaveBeenCalledWith(password, hasedPassword);
+      expect(mockJwtService.sign).toHaveBeenCalledWith({ email, sub: 1 });
       expect(result).toEqual({ access_token: 'mock-token' });
     });
 
     it('계정이 존재하지 않는 경우', async () => {
-      mockUserService.findOne.mockResolvedValue(null);
+      mockUserService.findOneBy.mockResolvedValue(null);
 
-      await expect(
-        service.signIn({ email: 'test@gmail.com', password: '1234' }),
-      ).rejects.toThrow('존재하지 않은 계정입니다.');
+      await expect(service.signIn({email, password })).rejects.toThrow("존재하지 않은 계정입니다.");
     });
 
     it('비밀번호가 틀린 경우', async () => {
-      dto = { userId: 1, email: 'test@gmail.com', password: '1234' };
-      mockUserService.findOne.mockResolvedValue(dto); // 응답 주입
+      mockUserService.findOneBy.mockResolvedValue({user_id: 1, email, password: hasedPassword }); // 응답 주입
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
       
-
-      await expect(
-        service.signIn({email: 'test@gmail.com', password: '1235'})
-      ).rejects.toThrow("비밀번호가 잘못되었습니다.");
+      await expect(service.signIn({ email, password })).rejects.toThrow("비밀번호가 잘못되었습니다.");
     });
   });
 
