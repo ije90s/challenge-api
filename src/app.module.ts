@@ -8,9 +8,24 @@ import { ChallengeModule } from './challenge/challenge.module';
 import { ParticipationModule } from './participation/participation.module';
 import { FeedModule } from './feed/feed.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
-  imports: [ConfigModule.forRoot({isGlobal: true }), UserModule, AuthModule, ChallengeModule, ParticipationModule, FeedModule],
+  imports: [
+    ConfigModule.forRoot({isGlobal: true }),
+    TypeOrmModule.forRoot({
+      type: 'mysql',
+      host: process.env.DB_HOST!,
+      port: parseInt(process.env.DB_PORT!),
+      username: process.env.DB_USER!,
+      password: process.env.DB_PASS!,
+      database: process.env.DB_NAME!,
+      entities: [],
+      synchronize: process.env.MODE! === 'dev',
+      logging: process.env.MODE! === 'dev' ? true : ['warn', 'error'],
+      logger: process.env.MODE! === 'dev' ? 'advanced-console' : 'simple-console',
+    }), 
+    UserModule, AuthModule, ChallengeModule, ParticipationModule, FeedModule],
   controllers: [AppController],
   providers: [AppService],
 })
