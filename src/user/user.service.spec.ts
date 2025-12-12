@@ -1,33 +1,31 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import * as bcrypt from 'bcrypt';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { User } from './entity/user.entity';
 
 jest.mock('bcrypt');
 
 describe('UserService', () => {
   let service: UserService;
-  let users: any[];
   let result: any;
-  let dto: any;
+  
+  const mockUserRepository = {
+    findOneBy: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+  }
  
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UserService],
+      providers: [
+        UserService,
+        { provide: getRepositoryToken(User), useValue: mockUserRepository,
+        },],
     }).compile();
 
     service = module.get<UserService>(UserService);
-    users = [
-        {
-        userId: 1,
-        email: 'test@gmail.com',
-        password: '1234',
-        },
-        {
-        userId: 2,
-        email: 'test2@gmail.com',
-        password: 'guess',
-        },
-    ];
+
   });
 
   afterEach(() => {
@@ -39,34 +37,47 @@ describe('UserService', () => {
   });
 
   describe('signUp', () => {
+    const email = 'test@gmail.com';
+    const password = '1234';
+    const hasedPassword = 'hashed-1234';
+
+    beforeEach(() => {
+      jest.clearAllMocks();           
+    });
     it('회원가입 성공', async () => {
-      dto = { userId: 1, email: 'test3@gmail.com', password: '1234'};
-      (bcrypt.hash as jest.Mock).mockReturnValue('hashed-1234');
-
-      const result = await service.signUp(dto);
-
-      expect(bcrypt.hash).toHaveBeenCalledWith(dto.password, 10);
-      expect(result).toBe(`new account : test3@gmail.com, hashed-1234`);
+      mockUserRepository.findOneBy.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue(hasedPassword);
+      mockUserRepository.create.mockReturnValue({ email, password: hasedPassword });
+      mockUserRepository.save.mockResolvedValue({user_id: 1, email, password: hasedPassword });
+  
+      result = await service.signUp({ email, password });
+      expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ email });
+      expect(bcrypt.hash).toHaveBeenCalledWith(password, 10);
+      expect(mockUserRepository.create).toHaveBeenCalledWith({ email, password: hasedPassword });
+      expect(mockUserRepository.save).toHaveBeenCalledWith({email, password: hasedPassword })
+      expect(result).toEqual({ user_id: 1, email: 'test@gmail.com', password: 'hashed-1234' });
     });
 
     it('계정이 존재하는 경우', async () => {
-      dto = users[0];
-      await expect(() => service.signUp(dto)).rejects.toThrow('해당 이메일은 존재합니다.');
+      mockUserRepository.findOneBy.mockResolvedValue({user_id: 1, email, password: hasedPassword });
+      await expect(service.signUp({email, password})).rejects.toThrow("이미 존재하는 이메일입니다.");
     });
   });
 
   describe('findOne', () =>{
     it('계정이 존재하는 경우', async () => {
-      const email = 'test@gmail.com';
-      result = await service.findOne(email);
+      const email = 'test2@gmail.com';
+      mockUserRepository.findOneBy.mockResolvedValue({user_id: 1, email, password: '1234' });
+      result = await service.findOneBy(email);
       expect(result).toBeDefined();
-      expect(result.userId).toBe(1);
+      expect(result.user_id).toBe(1);
     });
 
     it('계정이 존재하지 않는 경우', async () => {
+      mockUserRepository.findOneBy.mockResolvedValue(null);
       const email = 'test3@gmail.com';
-      result = await service.findOne(email);
-      expect(result).toBeUndefined();
+      result = await service.findOneBy(email);
+      expect(result).toBeNull();
     })
   });
 

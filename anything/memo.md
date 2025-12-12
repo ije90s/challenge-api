@@ -155,3 +155,18 @@ describe('signIn', () => {
 | 구조적 확장성     | 낮음                  | 매우 높음                      |
 | Nest 컨텍스트   | 포함 안 됨              | 포함 됨                       |
 | 실무 적합성      | 낮음                  | 매우 높음                      |
+
+
+- TypeORM 셋팅
+  - 관련 패키지 설치 
+  - AppModule에 TypeModule import 처리 > DB 셋팅
+  - Looger
+    - logging: logger 레벨 지정(모두 다 허용이면, true)
+    - logger: logger 스타일 
+    
+| logger             | 특징                 | 출력 스타일        |
+| ------------------ | ------------------ | ------------- |
+| `simple-console`   | 최소한의 정보만 출력        | 단순 문자열        |
+| `advanced-console` | 컬러 + 포맷팅 + 구조화된 출력 | **예쁘고 보기 쉬움** |
+| `file`             | 로그를 파일에 저장         | 파일 기반         |
+| `debug`            | 매우 상세한 로그          | 개발용, verbose  |

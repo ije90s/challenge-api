@@ -13,7 +13,7 @@ export class AuthService {
 
     async signIn(dto: LoginUserDto){
         const {email, password } = dto;
-        const user = await this.userService.findOne(email);
+        const user = await this.userService.findOneBy(email);
         if(!user){
             throw new UnauthorizedException("존재하지 않은 계정입니다.");
         }
@@ -24,7 +24,7 @@ export class AuthService {
             throw new UnauthorizedException("비밀번호가 잘못되었습니다.");
         }
 
-        const payload = { email: user.email, sub: user.userId };
+        const payload = { email: user.email, sub: user.user_id };
 
         return { access_token: this.jwtService.sign(payload) };
     }
