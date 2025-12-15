@@ -24,7 +24,7 @@ export class AuthService {
             throw new UnauthorizedException("비밀번호가 잘못되었습니다.");
         }
 
-        const payload = { email: user.email, sub: user.user_id };
+        const payload = { email: user.email, sub: user.id };
 
         return { access_token: this.jwtService.sign(payload) };
     }

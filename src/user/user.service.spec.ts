@@ -48,18 +48,18 @@ describe('UserService', () => {
       mockUserRepository.findOneBy.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue(hasedPassword);
       mockUserRepository.create.mockReturnValue({ email, password: hasedPassword });
-      mockUserRepository.save.mockResolvedValue({user_id: 1, email, password: hasedPassword });
+      mockUserRepository.save.mockResolvedValue({ id: 1, email, password: hasedPassword });
   
       result = await service.signUp({ email, password });
       expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ email });
       expect(bcrypt.hash).toHaveBeenCalledWith(password, 10);
       expect(mockUserRepository.create).toHaveBeenCalledWith({ email, password: hasedPassword });
       expect(mockUserRepository.save).toHaveBeenCalledWith({email, password: hasedPassword })
-      expect(result).toEqual({ user_id: 1, email: 'test@gmail.com', password: 'hashed-1234' });
+      expect(result).toEqual({ id: 1, email: 'test@gmail.com', password: 'hashed-1234' });
     });
 
     it('계정이 존재하는 경우', async () => {
-      mockUserRepository.findOneBy.mockResolvedValue({user_id: 1, email, password: hasedPassword });
+      mockUserRepository.findOneBy.mockResolvedValue({ id: 1, email, password: hasedPassword });
       await expect(service.signUp({email, password})).rejects.toThrow("이미 존재하는 이메일입니다.");
     });
   });
@@ -67,10 +67,10 @@ describe('UserService', () => {
   describe('findOne', () =>{
     it('계정이 존재하는 경우', async () => {
       const email = 'test2@gmail.com';
-      mockUserRepository.findOneBy.mockResolvedValue({user_id: 1, email, password: '1234' });
+      mockUserRepository.findOneBy.mockResolvedValue({ id: 1, email, password: '1234' });
       result = await service.findOneBy(email);
       expect(result).toBeDefined();
-      expect(result.user_id).toBe(1);
+      expect(result.id).toBe(1);
     });
 
     it('계정이 존재하지 않는 경우', async () => {
