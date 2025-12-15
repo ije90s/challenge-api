@@ -1,6 +1,8 @@
-import { CreateDateColumn, UpdateDateColumn } from "typeorm";
+import { CreateDateColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 export abstract class CommonEntity {
+    @PrimaryGeneratedColumn()
+    id: number;
     
     @CreateDateColumn({type: 'timestamp' })
     created_at: Date;

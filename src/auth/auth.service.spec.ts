@@ -49,7 +49,7 @@ describe('AuthService', () => {
     });
 
     it('jwt 토큰 성공', async () => {
-      mockUserService.findOneBy.mockResolvedValue({user_id: 1, email, password: hasedPassword }); // 응답 주입
+      mockUserService.findOneBy.mockResolvedValue({ id: 1, email, password: hasedPassword }); // 응답 주입
       mockJwtService.sign.mockReturnValue('mock-token');
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
@@ -67,7 +67,7 @@ describe('AuthService', () => {
     });
 
     it('비밀번호가 틀린 경우', async () => {
-      mockUserService.findOneBy.mockResolvedValue({user_id: 1, email, password: hasedPassword }); // 응답 주입
+      mockUserService.findOneBy.mockResolvedValue({ id: 1, email, password: hasedPassword }); // 응답 주입
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
       
       await expect(service.signIn({ email, password })).rejects.toThrow("비밀번호가 잘못되었습니다.");
