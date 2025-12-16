@@ -22,7 +22,7 @@ export class Challenge extends CommonEntity {
     @Column()
     end_date: Date;
 
-    @ManyToOne(type => User, (user) => user.id)
+    @ManyToOne(() => User, user => user.id)
     author: User;
 
     @DeleteDateColumn()
