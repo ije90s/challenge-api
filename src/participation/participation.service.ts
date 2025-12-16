@@ -1,149 +1,135 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { CreateParticipationDto } from './dto/create-participation.dto';
 import { UpdateParticipationDto } from './dto/update-participation.dto';
 import { ChallengeService } from '../challenge/challenge.service';
 import { checkThePast } from '../common/util';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Participation } from './entity/participation.entity';
+import { Repository } from 'typeorm';
 
 
 @Injectable()
 export class ParticipationService {
 
-    constructor(private readonly challegneService: ChallengeService){}
+    constructor(
+        private readonly challegneService: ChallengeService,
+        @InjectRepository(Participation) private participationRepository: Repository<Participation>
+    ){}
 
-    private participations = [
-        {
-            participation_id: 1,
-            user_id: 1,
-            challenge_id: 1,
-            score: 0,
-            challenge_count: 0,
-            status: 0,
-            complete_date: ''
-        },
-        {
-            participation_id: 2,
-            user_id: 2,
-            challenge_id: 1,
-            score: 2,
-            challenge_count: 0, 
-            status: 0,
-            complete_date: ''
-        },
-        {
-            participation_id: 3,
-            user_id: 3,
-            challenge_id: 1,
-            score: 2,
-            challenge_count: 0, 
-            status: 2,
-            complete_date: ''
-        }
-    ];
-
-    findOne(challengeId: number, userId: number){
-        return this.participations.find(item => item.challenge_id === challengeId && item.user_id === userId);
+    async findOne(challengeId: number, userId: number): Promise<Participation | null>{
+        return this.participationRepository.findOne({
+            where: {
+                challenge: { id: challengeId },
+                user: { id: userId },
+            },
+            //relations: ['challenge', 'user'],
+        });
     }
 
-    async create(challengeId: number, userId: number, dto: CreateParticipationDto){
+    async create(userId: number, dto: CreateParticipationDto): Promise<Participation>{
 
-        const challenge = await this.challegneService.findOne(challengeId);
+        const challenge = await this.challegneService.findOne(dto.challenge_id);
         if(!challenge){
-            throw new UnauthorizedException("챌린지가 존재하지 않습니다.");
+            throw new ForbiddenException("챌린지가 존재하지 않습니다.");
         }
 
         if(!checkThePast(challenge.end_date)){
             throw new UnauthorizedException("기간이 지났습니다.");
         }
 
-        const participation = await this.findOne(challengeId, userId);
+        const participation = await this.findOne(dto.challenge_id, userId);
         if(participation){
             throw new UnauthorizedException("이미 참가중입니다.");
         }
 
-        // 디폴트 지정
-        dto.score = dto.score ?? 0;
-        dto.challenge_count = dto.challenge_count ?? 0;
-        dto.status = dto.status ?? 0;
-        dto.complete_date = dto.complete_date ?? '';
-
-        const lastValue = this.participations[this.participations.length-1];
-        this.participations.push({
-            participation_id: lastValue.participation_id + 1,
-            user_id: userId,
-            challenge_id: challengeId,
-            score: dto.score,
-            challenge_count: dto.challenge_count,
-            status: dto.status,
-            complete_date: dto.complete_date
+        const newParticipation = this.participationRepository.create({ 
+            challenge: { id: dto.challenge_id },
+            user: { id: userId },
         });
 
-        return this.participations[this.participations.length-1];
+        return await this.participationRepository.save(newParticipation);
     }
 
-    async update(challengeId: number, userId: number, dto: UpdateParticipationDto){
+    async update(userId: number, dto: UpdateParticipationDto): Promise<Participation>{
 
-        const challenge = await this.challegneService.findOne(challengeId);
+        const challenge = await this.challegneService.findOne(dto.challenge_id!);
         if(!challenge){
-            throw new UnauthorizedException("챌린지가 존재하지 않습니다.");
+            throw new NotFoundException("챌린지가 존재하지 않습니다.");
         }
 
         if(!checkThePast(challenge.end_date)){
-            throw new UnauthorizedException("기간이 지났습니다.");
+            throw new BadRequestException("기간이 지났습니다.");
         }
         
-        const participation = await this.findOne(challengeId, userId);
+        const participation = await this.findOne(dto.challenge_id!, userId);
         if(!participation){
-            throw new UnauthorizedException("참가하지 않았습니다.");
+            throw new ForbiddenException("참가하지 않았습니다.");
         }
         
         if(participation.status === 2){
-            throw new UnauthorizedException("챌린지 포기 상태입니다.");
+            throw new ConflictException("챌린지 포기 상태입니다.");
         }
 
-        // 디폴트 지정 - 원 값으로 지정
-        dto.score = dto.score ?? participation.score;
-        dto.challenge_count = dto.challenge_count ?? participation.challenge_count;
-        dto.status = dto.status ?? participation.status;
-        dto.complete_date = dto.complete_date ?? participation.complete_date;
-        
-        const updated = this.participations.map(item => item.challenge_id === challengeId && item.user_id === userId ? 
-            { ...item, score: dto.score, challenge_count: dto.challenge_count, status: dto.status, complete_date: dto.complete_date } : item );
+        const score = dto.score ?? 0;
+        const count = dto.challenge_count ?? 0;
+        const total = challenge.type === 0 ? score + participation.score : count + participation.challenge_count;
+        if (participation.status !== 1 && challenge.mininum_count <= total) {
+            participation.status = 1;
+            participation.complete_date = new Date();
+        }
+    
+        participation.score+=score;
+        participation.challenge_count+=count;
 
-        return updated;
+        return this.participationRepository.save(participation);
     }
 
-    async updateStatus(challengeId: number, userId: number){
+    async updateStatus(userId: number, dto: UpdateParticipationDto): Promise<Participation>{
         
-        const participation = await this.findOne(challengeId, userId);
+        const participation = await this.findOne(dto.challenge_id!, userId);
         if(!participation){
-            throw new UnauthorizedException("참가하지 않았습니다.");
+            throw new ForbiddenException("참가하지 않았습니다.");
+        }
+
+        if(participation.status === 1){
+            throw new ConflictException("이미 챌린지 완료했습니다.");
         }
 
         const status = participation.status === 2 ? 0 : 2;
+        participation.status = status;
 
-        this.participations = this.participations.map(item =>
-        item.challenge_id === challengeId && item.user_id === userId
-            ? { ...item, status }
-            : item
-        );
-
-        return this.participations;
-
+        return this.participationRepository.save(participation);
     }
 
-    async getChallengeRank(challengeId: number, userId: number){
+    async getChallengeRank(challengeId: number, userId: number): Promise<Participation[]>{
+
+        const challenge = await this.challegneService.findOne(challengeId);
+        if(!challenge){
+            throw new NotFoundException("챌린지가 존재하지 않습니다.");
+        }
 
         const participation = await this.findOne(challengeId, userId);
         if(!participation){
-            throw new UnauthorizedException("참가하지 않았습니다.");
+            throw new ForbiddenException("참가하지 않았습니다.");
         }
 
-        const list = this.participations.filter(item => item.challenge_id === challengeId).sort((a, b) => b.participation_id - a.participation_id);
+        // 타입에 따라 정렬
+        const orderField = challenge.type === 0 ? 'p.score' : 'p.challenge_count';
 
-        return list;
+        return this.participationRepository
+            .createQueryBuilder('p')
+            .where('p.challenge_id = :challengeId', { challengeId })
+            .orderBy(orderField, 'DESC')
+            .addOrderBy('p.created_at', 'DESC')
+            .getMany();
     }
 
-    getMyChallenge(userId: number){
-        return this.participations.find(item => item.user_id == userId);
+    async getMyChallenge(userId: number): Promise<Participation[]>{
+        return this.participationRepository.find({
+            where: {
+                user: { id: userId },
+            },
+            order: { created_at: 'DESC' },
+        });
     }
 }
