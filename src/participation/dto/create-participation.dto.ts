@@ -1,7 +1,12 @@
 import { Type } from "class-transformer";
-import { IsNumber, IsOptional, IsString } from "class-validator";
+import { IsDate, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 
 export class CreateParticipationDto {
+
+    @IsNumber()
+    @IsNotEmpty()
+    @Type(() => Number)
+    challenge_id: number;
 
     @IsNumber()
     @IsOptional()
@@ -12,13 +17,4 @@ export class CreateParticipationDto {
     @IsOptional()
     @Type(() => Number)
     challenge_count?: number;
-
-    @IsNumber()
-    @IsOptional()
-    @Type(() => Number)
-    status?: number;
-
-    @IsString()
-    @IsOptional()
-    complete_date?: string;
 }
