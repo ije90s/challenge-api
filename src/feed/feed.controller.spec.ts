@@ -6,10 +6,23 @@ import { ChallengeModule } from '../challenge/challenge.module';
 describe('FeedController', () => {
   let controller: FeedController;
 
+  const mockFeedService = {
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    findByTitle: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ChallengeModule],
-      providers: [FeedService],
+      providers: [
+        {
+          provide: FeedService,
+          useValue: mockFeedService,
+        },
+      ],
       controllers: [FeedController],
     }).compile();
 

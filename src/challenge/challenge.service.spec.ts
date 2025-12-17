@@ -8,6 +8,7 @@ describe('ChallengeService', () => {
   let service: ChallengeService;
   let result: any;
   let challenges: any[];
+  const today = new Date();
 
   const mockChallengeRepository = {
     find: jest.fn(),
@@ -39,7 +40,9 @@ describe('ChallengeService', () => {
         start_date: new Date('2025-12-01'),
         end_date: new Date('2025-12-31'),
         author: { id: 1, },
-        deleted_at: null
+        deleted_at: null,
+        create_at: new Date(),
+        update_at: new Date(),
       },
       {
         id: 2, 
@@ -50,7 +53,9 @@ describe('ChallengeService', () => {
         start_date: new Date('2025-12-01'),
         end_date: new Date('2025-12-20'),
         author: { id: 2, },
-        deleted_at: null
+        deleted_at: null,
+        create_at: new Date(),
+        update_at: new Date(),
       }
     ];
   });
@@ -137,6 +142,8 @@ describe('ChallengeService', () => {
       ...dto,
       start_date: new Date(dto.start_date),
       end_date: new Date(dto.end_date),
+      create_at: today,
+      update_at: today,
     };
     it("챌린지 생성 성공", async () => {
       mockChallengeRepository.findOneBy.mockResolvedValue(null);
@@ -147,7 +154,8 @@ describe('ChallengeService', () => {
       expect(mockChallengeRepository.findOneBy).toHaveBeenCalledWith({ id: Not(0), title: '테스트3'});
       expect(mockChallengeRepository.create).toHaveBeenCalledWith({ ...dto, author: {id: 3}});
       expect(mockChallengeRepository.save).toHaveBeenCalledWith(challengeEntity);
-      expect(result).toEqual(challengeEntity);
+
+      expect(result.create_at).toEqual(today);
     });
 
     it('제목이 중복인 경우', async () => {
@@ -194,6 +202,7 @@ describe('ChallengeService', () => {
   });
 
   describe("update", () => {
+    const update_at = new Date();
     let dto = {
       title: '테스트3',
       content: '테스트3',
@@ -203,7 +212,7 @@ describe('ChallengeService', () => {
     it("챌린지 수정 성공", async () => {
       mockChallengeRepository.findOne.mockResolvedValue(challenges[0]);
       mockChallengeRepository.findOneBy.mockResolvedValue(null);
-      mockChallengeRepository.save.mockResolvedValue({ ...challenges[0], title: '테스트3', content: '테스트3'});
+      mockChallengeRepository.save.mockResolvedValue({ ...challenges[0], title: '테스트3', content: '테스트3', update_at });
 
       result = await service.update(1, 1, dto);
       expect(mockChallengeRepository.findOne).toHaveBeenCalledWith({
@@ -213,6 +222,7 @@ describe('ChallengeService', () => {
       expect(mockChallengeRepository.findOneBy).toHaveBeenCalledWith({ id: Not(1), title: '테스트3' });
       expect(mockChallengeRepository.save).toHaveBeenCalledWith(Object.assign(challenges[0], dto));
       expect(result.title).toEqual('테스트3');
+      expect(result.update_at).not.toEqual(today);
     });
 
     it('챌린지가 없는 경우', async () => {

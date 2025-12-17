@@ -15,10 +15,7 @@ describe('ChallengeController', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [{
-      provide: ChallengeService,
-      useValue: mockChallengeService,
-      },],
+      providers: [{ provide: ChallengeService, useValue: mockChallengeService, },],
       controllers: [ChallengeController],
     }).compile();
 

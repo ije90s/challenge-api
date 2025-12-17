@@ -157,10 +157,49 @@ mock 값 설정 시에 반복적으로 적어야 하는 경우, 초기에 before
 | 실무 적합성      | 낮음                  | 매우 높음                      |
 
 
-### TypeORM 셋팅
-관련 패키지 설치
+### TypeORM
+셋팅 
+- 관련 패키지 설치
+- AppModule에 TypeModule import 처리 > DB 셋팅
+- TypeOrmModule.forRoot(): TypeORM의 DataSource를 생성·등록해 주는 역할
+  - 내부적으로 DataSource 객체를 생성 > initialize() 자동 호출 > NestJS DI 컨테이너에 DataSource 등록
 
-AppModule에 TypeModule import 처리 > DB 셋팅
+| 개념                        | 의미                                   |
+| ------------------------- | ------------------------------------ |
+| `DataSource`              | TypeORM의 실제 DB 연결 객체                 |
+| `TypeOrmModule.forRoot()` | **DataSource를 NestJS 방식으로 만들어주는 래퍼** |
+| `@InjectRepository()`     | 해당 DataSource에서 Repository 꺼내 쓰는 것   |
+
+DataSource
+- DB 커넥션 관리
+- 트랜잭션 관리
+- Entity 메타데이터 보관
+- Repository 생성
+- QueryRunner 생성
+- TypeOrmModule.forFeature(): 이미 존재하는 DataSource에서 특정 Entity의 Repository를 꺼내서 해당 Module의 DI 스코프에 등록
+- DataSource >> EntityManager >> Repository
+- DataSource 직접 쓰는 경우: 트랜잭션, ueryBuilder / Raw Query
+
+| 구분            | 역할         | 언제 쓰나           |
+| ------------- | ---------- | --------------- |
+| DataSource    | 최상위 관리자    | 트랜잭션, Raw Query |
+| EntityManager | 엔티티 범용 관리자 | 여러 엔티티 한 번에     |
+| Repository    | 단일 엔티티 전용  | CRUD            |
+
+```
+AppModule 로딩
+ ↓
+TypeOrmModule.forRoot()
+ ↓
+DataSource initialize()
+ ↓
+Entity metadata 로딩
+ ↓
+Repository 준비 완료
+ ↓
+Service/Controller 실행 가능
+
+```
 
 Looger
   - logging: logger 레벨 지정(모두 다 허용이면, true)
@@ -345,13 +384,14 @@ await user.save();   // BaseEntity의 save() 사용
 | `findOne`   | where + relations + select + order 등 | 복합 조건, 관계 로딩 가능 | 유연하지만 약간 무거움 |
 | `findOneBy` | where 조건만                            | 단순 조회           | 가볍고 단순       |
 
-### create() vs save()
+### create() vs save() vs update()
 역할
 
 | 메서드        | 역할                                                            |
 | ---------- | ------------------------------------------------------------- |
 | `create()` | **엔티티 인스턴스 생성**: DB에 바로 저장하지 않고, 메모리상에서 TypeORM Entity 객체를 생성 |
 | `save()`   | **DB에 저장**: `create()`로 만든 엔티티를 실제로 DB에 INSERT/UPDATE         |
+| `update()`   |**DB 업데이트**: 단순 내용 수정이면, 속도가 빨라 이 방식으로 해도 되나, 안전하지 않아 트랜잭션/find → 검증 → assign → save with Partial Update  |
 
 Data Mapper 패턴 준수
 - Data Mapper 패턴에서는 엔티티와 DB 저장이 분리되어야 함
@@ -381,3 +421,117 @@ Data Mapper 패턴 준수
 - create() → TypeScript에서 Entity 타입 체크 가능
 - save() → DB 반영
 - save()만 쓰면 타입 추론이 애매해질 수 있음
+
+### relations
+- OnetoOne: 1:1
+- OnetoMany: 1:N <> ManytoOne: N:1
+  - JoinColumn() 명시하지 않아도, ManytoOne이 FK
+  - OnetoMany 엄격하게 관계 정의 안해도 됨 > 단순 ORM 편의용 관계
+- OnetoMany 꼭 써야 하는 경우
+  - user.photos 로 바로 접근하고 싶다
+  - relations: ['photos'] 를 자주 쓴다
+  - 코드 가독성
+  - cascade
+- ManytoMany: N:M > 중간 테이블 필수
+  - JoinTable(): 붙는 쪽이 주인
+- JoinColumn: FK. FK를 명시적으로 키 정의
+```typescript
+// OneToOne
+// User
+@OneToOne(() => Profile, (profile) => profile.user)
+profile: Profile;
+
+// Profile
+@OneToOne(() => User, (user) => user.profile)
+@JoinColumn({ name: 'owner_id' })
+user: User;
+
+// OneToMany, ManyToOne
+@ManyToOne(() => User, (user) => user.photos)
+user: User
+
+@OneToMany(() => Photo, (photo) => photo.user)
+photos: Photo[]
+
+// ManyToMany
+// User
+@ManyToMany(() => Role)
+@JoinTable()
+roles: Role[];
+
+// Role
+@ManyToMany(() => User, (user) => user.roles)
+users: User[];
+```
+
+### 물리삭제 vs 논리삭제
+물리삭제
+- 언제 쓰는가? 
+  - 테스트 데이터
+  - 로그
+  - 복구 필요 없는 데이터
+- 단점
+  - 복구 불가
+  - 연관 데이터 깨질 위험
+  - 감사 로그 불가
+```typescript
+const result = await this.challengeRepo.delete({
+  challenge_id: challengeId,
+  author: userId,
+});
+
+if (result.affected === 0) {
+  throw new ForbiddenException();
+}
+```
+
+논리삭제
+- 장점
+  - 복구 가능
+  - 감사 로그 가능
+  - 연관 관계 안전
+  - 조회 시에 자동 제외
+```typescript
+//엔티티 설정
+@Entity()
+export class Challenge {
+  @PrimaryGeneratedColumn()
+  challenge_id: number;
+
+  @DeleteDateColumn()
+  deleted_at?: Date;
+}
+
+//서비스단 처리
+async delete(challengeId: number, userId: number) {
+  const challenge = await this.challengeRepo.findOne({
+    where: { challenge_id: challengeId },
+  });
+
+  if (!challenge) {
+    throw new NotFoundException();
+  }
+
+  if (challenge.author !== userId) {
+    throw new ForbiddenException();
+  }
+
+  await this.challengeRepo.softDelete(challengeId);
+}
+
+// 삭제 포함하여 조회
+this.challengeRepo.find({
+  withDeleted: true,
+});
+
+// 복구 했을 시에 unique값이 있는지를 유효검사해서 바로 업데이트 되지않도록 처리 & unique 인덱스(마이그레이션)
+await this.challengeRepo.restore(challengeId);
+```
+
+### delete vs remove
+| 메서드          | 특징                 |
+| ------------ | ------------------ |
+| delete()     | 쿼리 직접 실행           |
+| remove()     | 엔티티 기반, 훅 실행       |
+| softDelete() | deleted_at 업데이트    |
+| softRemove() | 엔티티 기반 soft delete |

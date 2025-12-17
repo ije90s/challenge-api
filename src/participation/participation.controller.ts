@@ -1,29 +1,29 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { CreateParticipationDto } from './dto/create-participation.dto';
 import { ParticipationService } from './participation.service';
 import { UpdateParticipationDto } from './dto/update-participation.dto';
 import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
 import { User } from '../common/user.decorator';
+import { CreateParticipationDto } from './dto/create-participation.dto';
 
 @UseGuards(JwtAuthGuard)
-@Controller('participation')
+@Controller('participation/challenge')
 export class ParticipationController {
 
     constructor(private readonly participationService: ParticipationService){}
     
-    @Post("challenge/:challengeId")
-    joinChallenge(@Param("challengeId") challengeId: number, @User() user, @Body() dto: CreateParticipationDto){
-        return this.participationService.create(challengeId, user.userId, dto);
+    @Post()
+    joinChallenge(@User() user, dto: CreateParticipationDto){
+        return this.participationService.create(user.userId, dto);
     }
 
-    @Patch("challenge/:challengeId")
-    updateChallenge(@Param("challengeId") challengeId: number, @User() user, @Body() dto: UpdateParticipationDto){
-        return this.participationService.update(user.userId, challengeId, dto);
+    @Patch()
+    updateChallenge(@User() user, @Body() dto: UpdateParticipationDto){
+        return this.participationService.update(user.userId, dto);
     }
 
-    @Patch("giveup/:challengeId")
-    giveupChallenge(@Param("challengeId") challengeId: number, @User() user){
-        return this.participationService.updateStatus(challengeId, user.userId);
+    @Patch("giveup")
+    giveupChallenge(@User() user, dto: UpdateParticipationDto){
+        return this.participationService.updateStatus(user.userId, dto);
     }
 
     @Get("rank/:challengeId")
