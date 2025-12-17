@@ -11,18 +11,20 @@ export class ChallengeService {
     constructor(@InjectRepository(Challenge) private challengeRepository: Repository<Challenge>){}
 
     async findAll(): Promise<Challenge[] | null>{
-        return this.challengeRepository.find();
+        return await this.challengeRepository.find({
+            order: {created_at: "DESC" },
+        });
     }
 
     async findOne(challengeId: number): Promise<Challenge | null> {
-        return this.challengeRepository.findOne({
+        return await this.challengeRepository.findOne({
             where: { id: challengeId },
-            relations: ['author'],
+            //relations: ['author'],
         });
     }
 
     async findByTitle(challengeId: number, title: string): Promise<Challenge | null>{
-        return this.challengeRepository.findOneBy({ id: Not(challengeId), title })
+        return await this.challengeRepository.findOneBy({ id: Not(challengeId), title })
     }
 
     async create(userId: number, dto: CreateChallengeDto): Promise<Challenge>{
@@ -41,10 +43,10 @@ export class ChallengeService {
 
         const newChallenge = this.challengeRepository.create({ ...dto, author: { id: userId } });
 
-        return this.challengeRepository.save(newChallenge);
+        return await this.challengeRepository.save(newChallenge);
     }
 
-    async update(challengeId: number, userId: number, dto: UpdateChallengeDto,): Promise<Challenge> {
+    async update(challengeId: number, userId: number, dto: UpdateChallengeDto): Promise<Challenge> {
         const challenge = await this.findOne(challengeId);
 
         if (!challenge) {
@@ -73,7 +75,7 @@ export class ChallengeService {
 
         Object.assign(challenge, dto);
 
-        return this.challengeRepository.save(challenge);
+        return await this.challengeRepository.save(challenge);
     }
 
     async delete(challengeId: number, userId: number): Promise<void> {

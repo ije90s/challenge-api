@@ -6,7 +6,7 @@ import { Column, DeleteDateColumn, Entity, JoinColumn, ManyToOne } from "typeorm
 @Entity({name: "feed"})
 export class Feed extends CommonEntity {
 
-    @Column({type: 'varchar', unique: true, nullable: false})
+    @Column({type: 'varchar', length: 30, unique: true, nullable: false})
     title: string;
 
     @Column({type: 'text', nullable: false })

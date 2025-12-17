@@ -17,7 +17,7 @@ export class ParticipationService {
     ){}
 
     async findOne(challengeId: number, userId: number): Promise<Participation | null>{
-        return this.participationRepository.findOne({
+        return await this.participationRepository.findOne({
             where: {
                 challenge: { id: challengeId },
                 user: { id: userId },
@@ -81,7 +81,7 @@ export class ParticipationService {
         participation.score+=score;
         participation.challenge_count+=count;
 
-        return this.participationRepository.save(participation);
+        return await this.participationRepository.save(participation);
     }
 
     async updateStatus(userId: number, dto: UpdateParticipationDto): Promise<Participation>{
@@ -98,7 +98,7 @@ export class ParticipationService {
         const status = participation.status === 2 ? 0 : 2;
         participation.status = status;
 
-        return this.participationRepository.save(participation);
+        return await this.participationRepository.save(participation);
     }
 
     async getChallengeRank(challengeId: number, userId: number): Promise<Participation[]>{
@@ -116,7 +116,7 @@ export class ParticipationService {
         // 타입에 따라 정렬
         const orderField = challenge.type === 0 ? 'p.score' : 'p.challenge_count';
 
-        return this.participationRepository
+        return await this.participationRepository
             .createQueryBuilder('p')
             .where('p.challenge_id = :challengeId', { challengeId })
             .orderBy(orderField, 'DESC')
@@ -125,7 +125,7 @@ export class ParticipationService {
     }
 
     async getMyChallenge(userId: number): Promise<Participation[]>{
-        return this.participationRepository.find({
+        return await this.participationRepository.find({
             where: {
                 user: { id: userId },
             },

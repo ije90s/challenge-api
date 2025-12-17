@@ -14,7 +14,7 @@ export class Participation extends CommonEntity{
     @Column({type: 'int4', nullable: false, default: 0})
     challenge_count: number;
 
-    @Column({type: 'int4', nullable: false, default: 0})
+    @Column({type: 'tinyint', nullable: false, default: 0})
     status: number;
 
     @Column({type: 'timestamp', nullable: true, default: null })

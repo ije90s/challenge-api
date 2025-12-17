@@ -91,7 +91,6 @@ describe('ChallengeService', () => {
       result = await service.findOne(1);
       expect(mockChallengeRepository.findOne).toHaveBeenCalledWith({
         where: { id: 1 },
-        relations: ['author'],
       });
       expect(result.author).toEqual({id: 1});
     });
@@ -102,7 +101,6 @@ describe('ChallengeService', () => {
       result = await service.findOne(3);
       expect(mockChallengeRepository.findOne).toHaveBeenCalledWith({
         where: { id: 3 },
-        relations: ['author'],
       });
       expect(result).toBeNull();
     });
@@ -132,16 +130,16 @@ describe('ChallengeService', () => {
         mininum_count: 1,
         title: '테스트3',
         content: '테스트3',
-        start_date: '2025-12-01',
-        end_date: '2025-12-18',
+        start_date: new Date('2025-12-01'),
+        end_date: new Date('2025-12-18'),
     };
     const challengeEntity = {
       id: 3, 
       author: { id: 3 },
       deleted_at: null, 
       ...dto,
-      start_date: new Date(dto.start_date),
-      end_date: new Date(dto.end_date),
+      start_date: dto.start_date,
+      end_date: dto.end_date,
       create_at: today,
       update_at: today,
     };
@@ -164,8 +162,8 @@ describe('ChallengeService', () => {
         mininum_count: 1,
         title: '테스트2',
         content: '테스트3',
-        start_date: '2025-12-01',
-        end_date: '2025-12-18'
+        start_date: new Date('2025-12-01'),
+        end_date: new Date('2025-12-18')
       };
 
       mockChallengeRepository.findOneBy.mockResolvedValue(challenges[1]);
@@ -178,8 +176,8 @@ describe('ChallengeService', () => {
         mininum_count: 1,
         title: '테스트3',
         content: '테스트3',
-        start_date: '2025-12-01',
-        end_date: '2025-11-30'
+        start_date: new Date('2025-12-01'),
+        end_date: new Date('2025-11-30')
       };
 
       mockChallengeRepository.findOneBy.mockResolvedValue(null);
@@ -192,8 +190,8 @@ describe('ChallengeService', () => {
         mininum_count: 1,
         title: '테스트3',
         content: '테스트3',
-        start_date: '2025-122323',
-        end_date: '2025-12-05'
+        start_date: new Date('2025-122323'),
+        end_date: new Date('2025-12-05')
       };
 
       mockChallengeRepository.findOneBy.mockResolvedValue(null);
@@ -206,8 +204,8 @@ describe('ChallengeService', () => {
     let dto = {
       title: '테스트3',
       content: '테스트3',
-      start_date: '2025-12-01',
-      end_date: '2025-12-31',
+      start_date: new Date('2025-12-01'),
+      end_date: new Date('2025-12-31'),
     };
     it("챌린지 수정 성공", async () => {
       mockChallengeRepository.findOne.mockResolvedValue(challenges[0]);
@@ -217,7 +215,7 @@ describe('ChallengeService', () => {
       result = await service.update(1, 1, dto);
       expect(mockChallengeRepository.findOne).toHaveBeenCalledWith({
         where: { id: 1 },
-        relations: ['author'],
+
       });
       expect(mockChallengeRepository.findOneBy).toHaveBeenCalledWith({ id: Not(1), title: '테스트3' });
       expect(mockChallengeRepository.save).toHaveBeenCalledWith(Object.assign(challenges[0], dto));
@@ -229,8 +227,8 @@ describe('ChallengeService', () => {
       dto = {
         title: '테스트3',
         content: '테스트3',
-        start_date: '2025-12-01',
-        end_date: '2025-12-05'
+        start_date: new Date('2025-12-01'),
+        end_date: new Date('2025-12-05')
       };
       mockChallengeRepository.findOne.mockResolvedValue(null);
 
@@ -241,8 +239,8 @@ describe('ChallengeService', () => {
       dto = {
         title: '테스트',
         content: '테스트3',
-        start_date: '2025-12-01',
-        end_date: '2025-12-05'
+        start_date: new Date('2025-12-01'),
+        end_date: new Date('2025-12-05')
       };
 
       mockChallengeRepository.findOne.mockResolvedValue(challenges[1]);
@@ -261,8 +259,8 @@ describe('ChallengeService', () => {
       dto = {
         title: '테스트3',
         content: '테스트3',
-        start_date: '2025-12-01',
-        end_date: '2025-11-30'
+        start_date: new Date('2025-12-01'),
+        end_date: new Date('2025-11-30')
       };
       mockChallengeRepository.findOne.mockResolvedValue(challenges[0]);
       mockChallengeRepository.findOneBy.mockResolvedValue(null);
@@ -277,7 +275,6 @@ describe('ChallengeService', () => {
       result = await service.delete(1, 1);
       expect(mockChallengeRepository.findOne).toHaveBeenCalledWith({
         where: { id: 1 },
-        relations: ['author'],
       });
       expect(mockChallengeRepository.softDelete).toHaveBeenCalledWith({ id: 1});
     });

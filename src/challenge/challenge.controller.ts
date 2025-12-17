@@ -22,7 +22,7 @@ export class ChallengeController {
     }
 
     @Patch(":challengeId")
-    modify(@Body() dto: UpdateChallengeDto, @User() user,  @Param("challengeId") challengeId: number){
+    modify(@Param("challengeId") challengeId: number, @User() user, @Body() dto: UpdateChallengeDto){
         return this.challengeService.update(challengeId, user.userId, dto);
     }
 
