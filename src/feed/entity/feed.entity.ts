@@ -10,7 +10,7 @@ export class Feed extends CommonEntity {
     title: string;
 
     @Column({type: 'text', nullable: false })
-    context: string;
+    content: string;
 
     @Column({type: 'array', nullable: true })
     images?: string[] | null;
