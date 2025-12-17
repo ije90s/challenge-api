@@ -7,14 +7,4 @@ export class CreateParticipationDto {
     @IsNotEmpty()
     @Type(() => Number)
     challenge_id: number;
-
-    @IsNumber()
-    @IsOptional()
-    @Type(() => Number)
-    score?: number;
-
-    @IsNumber()
-    @IsOptional()
-    @Type(() => Number)
-    challenge_count?: number;
 }
