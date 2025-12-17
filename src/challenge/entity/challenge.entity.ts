@@ -1,30 +1,31 @@
 import { CommonEntity } from "../../common/entity/common.entity";
 import { User } from "../../user/entity/user.entity";
-import { Column, DeleteDateColumn, Entity, ManyToOne } from "typeorm";
+import { Column, DeleteDateColumn, Entity, JoinColumn, ManyToOne } from "typeorm";
 
-@Entity()
+@Entity({name: "challenge"})
 export class Challenge extends CommonEntity {
-    @Column({default: 0})
+    @Column({type: 'tinyint', default: 0})
     type: number;
 
-    @Column({default: 1})
+    @Column({type: 'tinyint', default: 1})
     mininum_count: number;
 
-    @Column()
+    @Column({type: 'varchar', unique: true, nullable: false })
     title: string;
 
-    @Column()
+    @Column({type: 'text', nullable: false })
     content: string;
 
-    @Column()
+    @Column({type: 'timestamp', nullable: false })
     start_date: Date;
 
-    @Column()
+    @Column({type: 'timestamp', nullable: false })
     end_date: Date;
 
-    @ManyToOne(() => User, user => user.id)
+    @ManyToOne(() => User, {nullable: false})
+    @JoinColumn({ name: "user_id" })
     author: User;
 
-    @DeleteDateColumn()
-    deleted_at?: Date;
+    @DeleteDateColumn({type: 'timestamp', nullable: true, default: null })
+    deleted_at?: Date | null;
 }
