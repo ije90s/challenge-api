@@ -66,20 +66,9 @@ export const multerOptions = (folder: string) => {
 };
 
 // 날짜 입력값 확인
-export const checkDate = (startDate: (string | Date), endDate: (string | Date)): boolean => {
-  let newStartDate: Date, newEndDate: Date; 
-
-  if(typeof startDate === 'string'){
-    newStartDate = new Date(startDate);
-  }else{
-    newStartDate = startDate;
-  }
-
-  if(typeof endDate === 'string'){
-    newEndDate = new Date(endDate);
-  }else{
-    newEndDate = endDate;
-  }
+export const checkDate = (startDate: Date, endDate: Date): boolean => {
+  const newStartDate: Date = startDate;
+  const newEndDate: Date = endDate; 
   const today = new Date();
 
   // 날짜 형식 체크
@@ -96,14 +85,9 @@ export const checkDate = (startDate: (string | Date), endDate: (string | Date)):
 };
 
 // 날짜 지났는지 확인
-export const checkThePast = (strday: string | Date): boolean => {
+export const checkThePast = (strday: Date): boolean => {
   const today = new Date();
-  let inputDay: Date; 
-  if(typeof strday === 'string'){
-    inputDay = new Date(strday);
-  }else{
-    inputDay = strday;
-  }
+  const inputDay: Date = strday; 
 
   return inputDay > today;
 
