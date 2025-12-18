@@ -4,12 +4,13 @@ import * as bcrypt from 'bcrypt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm/repository/Repository';
 import { User } from './entity/user.entity';
+import { ResponseUserDto } from './dto/response-user.dto';
 
 @Injectable()
 export class UserService {
     constructor(@InjectRepository(User) private userRepository: Repository<User>){}
 
-    async signUp(dto: CreateUserDto): Promise<User>{
+    async signUp(dto: CreateUserDto): Promise<ResponseUserDto>{
         const { email, password } = dto;
         
         // DB 연결 전 확인 
@@ -22,8 +23,9 @@ export class UserService {
         const hasedPassword = await bcrypt.hash(password, 10);
 
         const newUser = this.userRepository.create({email, password: hasedPassword });
-        
-        return await this.userRepository.save(newUser);
+        const savedUser = await this.userRepository.save(newUser);
+       
+        return ResponseUserDto.from(savedUser);
     }
 
     async findOneBy(email: string): Promise<User | null>{

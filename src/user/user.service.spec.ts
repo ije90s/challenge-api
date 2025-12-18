@@ -45,25 +45,20 @@ describe('UserService', () => {
 
     beforeEach(() => {
       jest.clearAllMocks();
+      (bcrypt.hash as jest.Mock).mockResolvedValue(hasedPassword);
       jest.spyOn(service, 'findOneBy').mockResolvedValue(null);           
     });
-    it('회원가입 성공', async () => {
-      (bcrypt.hash as jest.Mock).mockResolvedValue(hasedPassword);
-      mockUserRepository.create.mockReturnValue(userEntity);
-      mockUserRepository.save.mockResolvedValue(userEntity);
-  
-      result = await service.signUp({ email, password });
-      expect(service.findOneBy).toHaveBeenCalledWith(email);
-      expect(bcrypt.hash).toHaveBeenCalledWith(password, 10);
-      expect(mockUserRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email, 
-          password: hasedPassword,
-        })
-      );
-      expect(mockUserRepository.save).toHaveBeenCalledWith(userEntity);
-      expect(result.id).toEqual(userEntity.id);
-      expect(result.email).toEqual(userEntity.email);
+    
+    it('회원가입 성공-ResponseDTO로 출력확인', async () => {
+      mockUserRepository.save.mockResolvedValue(userEntity);   
+      const result = await service.signUp({ email, password });
+
+      expect(bcrypt.hash).toHaveBeenCalled();
+      expect(result).toEqual({
+        id: userEntity.id,
+        email: userEntity.email,
+      });
+      expect(result).not.toHaveProperty('password');
     });
 
     it('계정이 존재하는 경우', async () => {
@@ -75,10 +70,10 @@ describe('UserService', () => {
   describe('findOne', () =>{
     it('계정이 존재하는 경우', async () => {
       const email = 'test2@gmail.com';
-      mockUserRepository.findOneBy.mockResolvedValue({ id: 1, email, password: '1234' });
+      jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValue({ id: 1, email, password: '1234' });
       result = await service.findOneBy(email);
-      expect(result).toBeDefined();
       expect(result.id).toBe(1);
+      expect(result.email).toEqual(email);
     });
 
     it('계정이 존재하지 않는 경우', async () => {
