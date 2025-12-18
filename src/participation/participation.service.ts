@@ -101,7 +101,7 @@ export class ParticipationService {
         return await this.participationRepository.save(participation);
     }
 
-    async getChallengeRank(challengeId: number, userId: number): Promise<Participation[]>{
+    async getChallengeRank(challengeId: number, userId: number, page: number, limit: number){
 
         const challenge = await this.challegneService.findOne(challengeId);
         if(!challenge){
@@ -114,22 +114,48 @@ export class ParticipationService {
         }
 
         // 타입에 따라 정렬
+        page = page ?? 1;
+        limit = limit ?? 10;
         const orderField = challenge.type === 0 ? 'p.score' : 'p.challenge_count';
-
-        return await this.participationRepository
+        const [items, total] = await this.participationRepository
             .createQueryBuilder('p')
             .where('p.challenge_id = :challengeId', { challengeId })
             .orderBy(orderField, 'DESC')
             .addOrderBy('p.created_at', 'DESC')
-            .getMany();
+            .skip((page-1)*limit)
+            .take(limit)
+            .getManyAndCount();
+
+        return {
+            items,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total/limit),
+            }
+        };
     }
 
-    async getMyChallenge(userId: number): Promise<Participation[]>{
-        return await this.participationRepository.find({
-            where: {
-                user: { id: userId },
-            },
+    async getMyChallenge(userId: number, page: number, limit: number){
+        page = page ?? 1;
+        limit = limit ?? 10;
+
+        const [items, total] = await this.participationRepository.findAndCount({
+            where: { user: { id: userId }, },
+            skip: (page-1)*limit,
+            take: limit,
             order: { created_at: 'DESC' },
         });
+
+        return {
+            items,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
     }
 }

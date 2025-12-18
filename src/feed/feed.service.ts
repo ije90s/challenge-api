@@ -25,11 +25,25 @@ export class FeedService {
         return fileNameArr;
     }
     
-    async findAll(challengeId: number): Promise<Feed[]>{
-        return await this.feedRepository.find({
+    async findAll(challengeId: number, page: number, limit: number){
+        page = page ?? 1;
+        limit = limit ?? 10;
+        const [items, total] = await this.feedRepository.findAndCount({
             where: {challenge: {id : challengeId }},
+            skip: (page-1) * limit,
+            take: limit,
             order: { created_at: 'DESC' },
         });
+
+        return {
+            items,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total/limit),
+            }
+        }
     }
 
     async findOne(feedId: number): Promise<Feed | null>{

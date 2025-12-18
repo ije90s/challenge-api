@@ -4,16 +4,33 @@ import { UpdateChallengeDto } from './dto/update-challenge.dto';
 import { checkDate } from '../common/util';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Challenge } from './entity/challenge.entity';
-import { Not, Repository } from 'typeorm';
+import { MoreThanOrEqual, Not, Repository } from 'typeorm';
 
 @Injectable()
 export class ChallengeService {
     constructor(@InjectRepository(Challenge) private challengeRepository: Repository<Challenge>){}
 
-    async findAll(): Promise<Challenge[] | null>{
-        return await this.challengeRepository.find({
+    async findAll(page: number, limit: number){
+        page = page ?? 1;
+        limit = limit ?? 10;
+        const today = new Date();
+
+        const [items, total] = await this.challengeRepository.findAndCount({
+            where: { end_date: MoreThanOrEqual(today) },
+            skip: (page - 1) * limit, 
+            take: limit,
             order: {created_at: "DESC" },
         });
+
+        return {
+            items,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
     }
 
     async findOne(challengeId: number): Promise<Challenge | null> {

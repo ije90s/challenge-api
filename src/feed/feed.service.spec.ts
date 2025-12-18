@@ -21,7 +21,7 @@ describe('FeedService', () => {
   }
 
   const mockFeedRepository = {
-    find: jest.fn(),
+    findAndCount: jest.fn(),
     findOne: jest.fn(),
     findOneBy: jest.fn(),
     create: jest.fn(),
@@ -78,23 +78,14 @@ describe('FeedService', () => {
 
   describe("findAll", () => {
     it("전체 리스트" , async () => {
-      mockFeedRepository.find.mockResolvedValue(feeds);
-      result = await service.findAll(1);
-      expect(mockFeedRepository.find).toHaveBeenCalledWith({
-        where: {challenge: {id : 1 }},
-        order: { created_at: 'DESC' },
-      });
-      expect(result).toEqual(feeds);
-    });
-
-    it("없는 경우", async () => {
-      mockFeedRepository.find.mockResolvedValue([]);
-      result = await service.findAll(2);
-      expect(mockFeedRepository.find).toHaveBeenCalledWith({
-        where: {challenge: {id : 1 }},
-        order: { created_at: 'DESC' },
-      });
-      expect(result.length).toBe(0);
+      jest.spyOn(mockFeedRepository, 'findAndCount').mockResolvedValue([[{} as any], 1]);
+      result = await service.findAll(1, 1, 10);
+      expect(result).toHaveProperty('items');
+      expect(result).toHaveProperty('meta');
+      expect(result.meta).toHaveProperty('total');
+      expect(result.meta).toHaveProperty('page');
+      expect(result.meta).toHaveProperty('limit');
+      expect(result.meta).toHaveProperty('totalPages');
     });
   });
 

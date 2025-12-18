@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ParticipationService } from './participation.service';
 import { UpdateParticipationDto } from './dto/update-participation.dto';
 import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
@@ -27,12 +27,12 @@ export class ParticipationController {
     }
 
     @Get("rank/:challengeId")
-    getChallengeRank(@Param("challengeId") challengeId: number, @User() user){
-        return this.participationService.getChallengeRank(challengeId, user.userId);
+    getChallengeRank(@Param("challengeId") challengeId: number, @User() user, @Query("page") page: number, @Query("limit") limit: number){
+        return this.participationService.getChallengeRank(challengeId, user.userId, page, limit);
     }
 
     @Get("mine")
-    getMyChallenge(@User() user){
-        return this.participationService.getMyChallenge(user.userId);
+    getMyChallenge(@User() user, @Query("page") page: number, @Query("limit") limit: number){
+        return this.participationService.getMyChallenge(user.userId, page, limit);
     }
 }

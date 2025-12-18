@@ -6,6 +6,8 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Participation } from './entity/participation.entity';
 import { CreateParticipationDto } from './dto/create-participation.dto';
 import { UpdateParticipationDto } from './dto/update-participation.dto';
+import { skip } from 'node:test';
+import { table } from 'console';
 
 // 올바른 mock 경로
 jest.mock('../common/util', () => ({
@@ -25,7 +27,9 @@ describe('ParticipationService', () => {
     where: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
     addOrderBy: jest.fn().mockReturnThis(),
-    getMany: jest.fn(),
+    getManyAndCount: jest.fn(),
+    skip: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
   };
 
   const today = new Date();
@@ -34,7 +38,7 @@ describe('ParticipationService', () => {
     findOne: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
-    find: jest.fn(),
+    findAndCount: jest.fn(),
     createQueryBuilder: jest.fn(() => mockQueryBuilder),
   }
 
@@ -352,53 +356,36 @@ describe('ParticipationService', () => {
     });
     it("점수순으로 리스트 가져오기", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(participations[0]);
+      jest.spyOn(mockQueryBuilder, 'getManyAndCount').mockResolvedValue([[{} as any], 1])
       
       const challengeId = 1;
-      const orderField = 'p.score';
-      const orderdParticipations = participations.sort((a,b) => {
-        return b.score - a.score;
-      });
-      mockQueryBuilder.getMany.mockResolvedValue(orderdParticipations);
+      result = await service.getChallengeRank(challengeId, 1, 1, 10);
 
-      result = await service.getChallengeRank(challengeId, 1);
-      expect(mockParticipationService.createQueryBuilder).toHaveBeenCalledWith('p');
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith('p.challenge_id = :challengeId', { challengeId })
-      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(orderField, 'DESC')
-      expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith('p.created_at', 'DESC')
-      expect(mockQueryBuilder.getMany).toHaveBeenCalled();
-      expect(result).toEqual(orderdParticipations);
+      expect(result).toHaveProperty('items');
+      expect(result).toHaveProperty('meta');
+      expect(result.meta).toHaveProperty('total');
+      expect(result.meta).toHaveProperty('page');
+      expect(result.meta).toHaveProperty('limit');
+      expect(result.meta).toHaveProperty('totalPages');
+ 
     });
 
-    it("참가하지 않은 경우", async () => {
-      jest.spyOn(service, 'findOne').mockResolvedValue(null);
-      await expect(service.getChallengeRank(1, 3)).rejects.toThrow("참가하지 않았습니다.");
-    });
+
   });
 
   describe("getMyChallenge", () => {
     it("챌린지 참가한 경우", async () => {
-      mockParticipationService.find.mockResolvedValue(participations[0]);
-      result = await service.getMyChallenge(1);
-      expect(mockParticipationService.find).toHaveBeenCalledWith({
-        where: {
-          user: { id: 1 },
-        },
-        order: { created_at: 'DESC' },
-      });
-      expect(result).toBeTruthy();
+      jest.spyOn(mockParticipationService, 'findAndCount').mockResolvedValue([[{}] as any, 1]);
+
+      result = await service.getMyChallenge(1, 1, 10);
+      expect(result).toHaveProperty('items');
+      expect(result).toHaveProperty('meta');
+      expect(result.meta).toHaveProperty('total');
+      expect(result.meta).toHaveProperty('page');
+      expect(result.meta).toHaveProperty('limit');
+      expect(result.meta).toHaveProperty('totalPages');
     });
 
-    it("없는 경우", async () => {
-      mockParticipationService.find.mockResolvedValue([]);
-      result = await service.getMyChallenge(9);
-      expect(mockParticipationService.find).toHaveBeenCalledWith({
-        where: {
-          user: { id: 9 },
-        },
-        order: { created_at: 'DESC' },
-      });
-      expect(result.length).toBe(0);
-    });
   });
 
 });

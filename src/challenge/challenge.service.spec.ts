@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ChallengeService } from './challenge.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Challenge } from './entity/challenge.entity';
-import { Not } from 'typeorm';
+import { MoreThanOrEqual, Not } from 'typeorm';
 
 describe('ChallengeService', () => {
   let service: ChallengeService;
@@ -11,7 +11,7 @@ describe('ChallengeService', () => {
   const today = new Date();
 
   const mockChallengeRepository = {
-    find: jest.fn(),
+    findAndCount: jest.fn(),
     findOne: jest.fn(),
     findOneBy: jest.fn(),
     create: jest.fn(),
@@ -70,17 +70,52 @@ describe('ChallengeService', () => {
 
   describe("findAll", () => {
     it("전체 리스트 조회", async() => {
-      mockChallengeRepository.find.mockResolvedValue(challenges);
-      result = await service.findAll();
-      expect(mockChallengeRepository.find).toHaveBeenCalled();
-      expect(result.length).toBe(2);
+      jest.spyOn(mockChallengeRepository, 'findAndCount').mockResolvedValue([[{} as any], 1]);
+      
+      result = await service.findAll(1, 10);
+      expect(result).toHaveProperty('items');
+      expect(result).toHaveProperty('meta');
+      expect(result.meta).toHaveProperty('total');
+      expect(result.meta).toHaveProperty('page');
+      expect(result.meta).toHaveProperty('limit');
+      expect(result.meta).toHaveProperty('totalPages');
     });
 
-    it("없는 경우", async() => {
-      mockChallengeRepository.find.mockResolvedValue(null);
-      result = await service.findAll();
-      expect(mockChallengeRepository.find).toHaveBeenCalled();
-      expect(result).toBeNull();
+    it('page와 limit이 meta에 반영된다', async () => {
+      jest.spyOn(mockChallengeRepository, 'findAndCount').mockResolvedValue([[{} as any, {} as any], 2]);
+
+      const result = await service.findAll(2, 5);
+      expect(result.meta.page).toBe(2);
+      expect(result.meta.limit).toBe(5);
+      expect(result.meta.totalPages).toBe(1);
+    });
+
+    it('종료되지 않은 챌린지만 조회한다', async () => {
+      const spy = jest.spyOn(mockChallengeRepository, 'findAndCount').mockResolvedValue([[], 0]);
+
+      await service.findAll(1, 10);
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            end_date: expect.any(Object), // MoreThanOrEqual
+          },
+          skip: 0,
+          take: 10,
+        }),
+      );
+    });
+
+    it('최신순으로 정렬된다', async () => {
+      const spy = jest.spyOn(mockChallengeRepository, 'findAndCount').mockResolvedValue([[], 0]);
+
+      await service.findAll(1, 10);
+      
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          order: { created_at: 'DESC' },
+        }),
+      );
     });
   });
 

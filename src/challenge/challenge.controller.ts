@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 import { ChallengeService } from './challenge.service';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
@@ -12,8 +12,8 @@ export class ChallengeController {
     constructor(private readonly challengeService: ChallengeService){}
 
     @Get()
-    findAll(){
-        return this.challengeService.findAll();
+    findAll(@Query('page') page: number, @Query('limit') limit: number){
+        return this.challengeService.findAll(page, limit);
     }
 
     @Post()
