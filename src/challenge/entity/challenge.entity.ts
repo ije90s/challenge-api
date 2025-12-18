@@ -10,7 +10,7 @@ export class Challenge extends CommonEntity {
     @Column({type: 'tinyint', default: 1})
     mininum_count: number;
 
-    @Column({type: 'varchar', unique: true, nullable: false })
+    @Column({type: 'varchar', length: 30, unique: true, nullable: false })
     title: string;
 
     @Column({type: 'text', nullable: false })

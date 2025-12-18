@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FeedService } from './feed.service';
 import { CreateFeedDto } from './dto/create-feed.dto';
 import { UpdateFeedDto } from './dto/update-feed.dto';
@@ -14,8 +14,8 @@ export class FeedController {
     constructor(private readonly feedService: FeedService){}
 
     @Get("challenge/:challengeId")
-    findAll(@Param("challengeId") challengeId: number){
-        return this.feedService.findAll(challengeId);
+    findAll(@Param("challengeId") challengeId: number, @Query("page") page: number, @Query("limit") limit: number){
+        return this.feedService.findAll(challengeId, page, limit);
     }
 
     @Get(":feedId")

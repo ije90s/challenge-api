@@ -40,26 +40,34 @@ describe('UserService', () => {
     const email = 'test@gmail.com';
     const password = '1234';
     const hasedPassword = 'hashed-1234';
+    const today = new Date();
+    const userEntity = { id: 1, email, password: hasedPassword, created_at: today, updated_at: today };
 
     beforeEach(() => {
-      jest.clearAllMocks();           
+      jest.clearAllMocks();
+      jest.spyOn(service, 'findOneBy').mockResolvedValue(null);           
     });
     it('회원가입 성공', async () => {
-      mockUserRepository.findOneBy.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue(hasedPassword);
-      mockUserRepository.create.mockReturnValue({ email, password: hasedPassword });
-      mockUserRepository.save.mockResolvedValue({ id: 1, email, password: hasedPassword });
+      mockUserRepository.create.mockReturnValue(userEntity);
+      mockUserRepository.save.mockResolvedValue(userEntity);
   
       result = await service.signUp({ email, password });
-      expect(mockUserRepository.findOneBy).toHaveBeenCalledWith({ email });
+      expect(service.findOneBy).toHaveBeenCalledWith(email);
       expect(bcrypt.hash).toHaveBeenCalledWith(password, 10);
-      expect(mockUserRepository.create).toHaveBeenCalledWith({ email, password: hasedPassword });
-      expect(mockUserRepository.save).toHaveBeenCalledWith({email, password: hasedPassword })
-      expect(result).toEqual({ id: 1, email: 'test@gmail.com', password: 'hashed-1234' });
+      expect(mockUserRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email, 
+          password: hasedPassword,
+        })
+      );
+      expect(mockUserRepository.save).toHaveBeenCalledWith(userEntity);
+      expect(result.id).toEqual(userEntity.id);
+      expect(result.email).toEqual(userEntity.email);
     });
 
     it('계정이 존재하는 경우', async () => {
-      mockUserRepository.findOneBy.mockResolvedValue({ id: 1, email, password: hasedPassword });
+      jest.spyOn(service, 'findOneBy').mockResolvedValue(userEntity);
       await expect(service.signUp({email, password})).rejects.toThrow("이미 존재하는 이메일입니다.");
     });
   });

@@ -424,17 +424,55 @@ Data Mapper 패턴 준수
 
 ### relations
 - OnetoOne: 1:1
+  - OneToOne이므로 UNIQUE 제약도 자동 생성
+    ```text
+      profile
+      ├─ id
+      ├─ user_id (UNIQUE + FK)
+    ```
+  - FK는 부가정보인 엔티티에 붙인다.
+
+  | 항목         | OneToOne |
+  | ---------- | -------- |
+  | FK owner   | 반드시 필요   |
+  | JoinColumn | ✅ 필수     |
+  | 위치         | FK 둘 테이블 |
+  | Unique     | 자동       |
 - OnetoMany: 1:N <> ManytoOne: N:1
-  - JoinColumn() 명시하지 않아도, ManytoOne이 FK
+  - 양방향인 경우, JoinColumn을 하지 않아도 OnetoMany, ManytoOne으로 가능 (TypeORM이 FK 위치와 기본 컬럼명을 자동으로 추론하기 때문)
+    ```text
+    @JoinColumn()
+    → { propertyName }_{ referencedColumnName }
+    ```
+  - 단반향인 경우, ManytoOne과 JoinColumn 명시
   - OnetoMany 엄격하게 관계 정의 안해도 됨 > 단순 ORM 편의용 관계
 - OnetoMany 꼭 써야 하는 경우
   - user.photos 로 바로 접근하고 싶다
   - relations: ['photos'] 를 자주 쓴다
-  - 코드 가독성
+  - 코드 가독
   - cascade
+- JoinColumn: FK. ManytoOne, OnetoOne 한쪽에 사용
+- JoinColumn을 언제 사용하는가? 
+  - FK 컬럼명 바꾸고 싶을 때
+    ```typescript
+      @ManyToOne(() => User)
+      @JoinColumn({ name: 'author_id' })
+      user: User;
+    ```
+  - 참조 컬럼이 id가 아닐 때 
+    ```typescript
+      @JoinColumn({ referencedColumnName: 'uuid' })
+    ```
 - ManytoMany: N:M > 중간 테이블 필수
   - JoinTable(): 붙는 쪽이 주인
-- JoinColumn: FK. FK를 명시적으로 키 정의
+
+| 상황              | where | relations | 결과           |
+| --------------- | ----- | --------- | ------------ |
+| ManyToOne (단방향) | ✅     | ❌         | FK 기준 필터만 > 빠른 조회 가능 |
+| ManyToOne (단방향) | ✅     | ✅         | JOIN + 객체 로딩 |
+| OneToMany만 존재   | ❌     | ❌         | 불가능          |
+| 양방향             | ✅     | ✅         | 자유롭게 가능      |
+
 ```typescript
 // OneToOne
 // User
@@ -447,13 +485,15 @@ profile: Profile;
 user: User;
 
 // OneToMany, ManyToOne
-@ManyToOne(() => User, (user) => user.photos)
+// 타입을 지정할 경우에는 데코레이터의 To 다음의 단어로 지정
+@ManyToOne(() => User, (user) => user.photos) // N
 user: User
 
-@OneToMany(() => Photo, (photo) => photo.user)
+@OneToMany(() => Photo, (photo) => photo.user) // 1
 photos: Photo[]
 
 // ManyToMany
+// JoinTable: 가상의 테이블을 만들고, User나 Role 둘 다 가질 수 있음
 // User
 @ManyToMany(() => Role)
 @JoinTable()
@@ -535,3 +575,97 @@ await this.challengeRepo.restore(challengeId);
 | remove()     | 엔티티 기반, 훅 실행       |
 | softDelete() | deleted_at 업데이트    |
 | softRemove() | 엔티티 기반 soft delete |
+
+### QueryBuilder
+- 복잡한 쿼리를 원하는 경우에는 사용 
+```typescript
+// 데이터가 적은 경우에는 find로 가능하지만, 데이터가 많아 지는 경우에는 쿼리빌더로 쿼리조회한다.
+this.participationRepository
+  .createQueryBuilder('p')
+  .where('p.challenge_id = :challengeId', { challengeId })
+  .orderBy(orderField, 'DESC')
+  .addOrderBy('p.created_at', 'DESC')
+  .getMany();
+```
+
+### 컨트롤러 테스트 파일에서 오류난다면? 
+특정 모듈에서 TypeORM 모듈을 import되어져 있는 경우에 `TypeOrmModule.forFeature → DataSource 필요 → DB 연결 시도`하기 때문에 에러 발생 
+```text
+Is TypeOrmModule a valid NestJS module?
+If DataSource is a provider, is it part of the current TypeOrmModule?
+```
+TDD에서는 외부 실행(ex> DB)을 배제하므로, mock으로 만들어서 처리
+
+```typescript
+import { Test, TestingModule } from '@nestjs/testing';
+import { FeedController } from './feed.controller';
+import { FeedService } from './feed.service';
+
+describe('FeedController', () => {
+  let controller: FeedController;
+
+  const mockFeedService = {
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    findOne: jest.fn(),
+    findAll: jest.fn(),
+    findByTitle: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [FeedController],
+      providers: [
+        {
+          provide: FeedService,
+          useValue: mockFeedService,
+        },
+      ],
+    }).compile();
+
+    controller = module.get<FeedController>(FeedController);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+});
+```
+
+### jest.fn() vs jest.mock() vs jest.spyOn()
+jest.fn()
+- 함수가 많지 않은 경우, 각각 mock() 처리 
+
+jest.mock()
+- 이 서비스가 “직접 호출해서 side-effect를 만드는 대상”을 가짜로 만드는 것으로, 함수가 많은 경우에는 jest.fn() 대신 jest.mock()으로 선언해서 사용
+- 역할: 서비스 ↔ DB
+  - 실제 DB 접근 방지
+  - side-effect 제어
+  - 입력 → 출력 관계 검증
+```typescript
+mockChallengeRepository.findOneBy.mockResolvedValue(null);
+mockChallengeRepository.save.mockResolvedValue(entity);
+```
+
+jest.spyOn()
+- 이 서비스가 의존하는 다른 책임의 결과를 통제해서 현재 서비스의 책임만 검증하기 위한 도구
+- 역할: 서비스 ↔ 서비스
+  - 이 서비스가 의존하는 다른 서비스 책임
+  - 구현은 관심 없음
+  - 결과만 필요
+```typescript
+jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+```
+
+```text
+[ Controller ]
+      ↓
+[ Service ]  ←── spyOn 대상 (다른 서비스 메서드)
+      ↓
+[ Repository ] ←── mock 대상 (DB side-effect)
+      ↓
+[ DB ]
+```
+
+참조: https://inpa.tistory.com/entry/JEST-%F0%9F%93%9A-%EB%AA%A8%ED%82%B9-mocking-jestfn-jestspyOn

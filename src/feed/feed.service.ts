@@ -15,11 +15,35 @@ export class FeedService {
         @InjectRepository(Feed) private feedRepository: Repository<Feed>
     ){}
 
-    async findAll(challengeId: number): Promise<Feed[]>{
-        return await this.feedRepository.find({
+    private getFileArr(images: Express.Multer.File[]): string[]{
+        const fileNameArr: string[] = [];
+        if(images){
+            images.map(item => {
+                fileNameArr.push(`feed/${item.filename}`);
+            });
+        }
+        return fileNameArr;
+    }
+    
+    async findAll(challengeId: number, page: number, limit: number){
+        page = page ?? 1;
+        limit = limit ?? 10;
+        const [items, total] = await this.feedRepository.findAndCount({
             where: {challenge: {id : challengeId }},
+            skip: (page-1) * limit,
+            take: limit,
             order: { created_at: 'DESC' },
         });
+
+        return {
+            items,
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total/limit),
+            }
+        }
     }
 
     async findOne(feedId: number): Promise<Feed | null>{
@@ -44,14 +68,8 @@ export class FeedService {
         if(feed){
             throw new UnauthorizedException("중복된 제목입니다.");
         }
-
-        const fileNameArr: string[] = [];
-        if(images){
-            images.map(item => {
-                fileNameArr.push(`feed/${item.filename}`);
-            });
-        }
-        dto.images = fileNameArr;
+        
+        dto.images = this.getFileArr(images);
 
         const newFeed = this.feedRepository.create({
             title: dto.title,
@@ -78,15 +96,8 @@ export class FeedService {
             throw new UnauthorizedException("중복된 제목입니다.");
         }
 
-        // 기존 이미지는 삭제 > 새 이미지 업로드
-        const fileNameArr: string[] = [];
-        if(images){
-            images.map(item => {
-                fileNameArr.push(`feed/${item.filename}`);
-            });
-        };
-    
-        dto.images = fileNameArr ?? feed.images;
+        // 기존 이미지는 삭제 > 새 이미지 업로드    
+        dto.images = this.getFileArr(images) ?? feed.images;
         
         Object.assign(feed, dto);
         return await this.feedRepository.save(feed);

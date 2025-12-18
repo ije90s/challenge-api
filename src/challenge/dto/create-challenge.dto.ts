@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { IsDate, IsNotEmpty, IsNumber, IsString } from "class-validator";
 
 export class CreateChallengeDto {
     
@@ -21,12 +21,14 @@ export class CreateChallengeDto {
     @IsNotEmpty()
     content: string;
 
-    @IsString()
+    @IsDate()
     @IsNotEmpty()
-    start_date: string;
+    @Type(() => Date)
+    start_date: Date;
 
-    @IsString()
+    @IsDate()
     @IsNotEmpty()
-    end_date: string;
+    @Type(() => Date)
+    end_date: Date;
 
 }
