@@ -20,11 +20,11 @@ export class Participation extends CommonEntity{
     @Column({type: 'timestamp', nullable: true, default: null })
     complete_date?: Date | null;
 
-    @ManyToOne(() => User, { nullable: false })
+    @ManyToOne(() => User, { onDelete: 'SET NULL' })
     @JoinColumn({ name: 'user_id' })
     user: User;
 
-    @ManyToOne(() => Challenge, { nullable: false })
+    @ManyToOne(() => Challenge, { onDelete: 'SET NULL' })
     @JoinColumn({ name: "challege_id" })
     challenge: Challenge;
 

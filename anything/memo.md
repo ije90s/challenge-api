@@ -669,3 +669,13 @@ jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
 ```
 
 참조: https://inpa.tistory.com/entry/JEST-%F0%9F%93%9A-%EB%AA%A8%ED%82%B9-mocking-jestfn-jestspyOn
+
+### 관계 옵션값
+이 옵션값들은 모두 FK쪽에서 어떻게 처리할 것인지를 결졍하는 옵션값
+- eager: boolean(default: false) 연결된 관계를 자동으로 가져올 것인가?에 대한 옵션값
+  - 관계가 많은 경우에는 쿼리 조회가 느려질 수 있음
+- cascade: boolean | ("insert" | "update")[](default: false) 새 엔티티 객체가 추가되는 경우에 자동으로 추가/수정 등의 액션들을 연쇄적으로 처리할 것인가?에 대한 옵션값
+- onDelete: "RESTRICT"|"CASCADE"|"SET NULL" (default: RESTRICT) 소유자가 삭제되는 경우에는 FK쪽도 삭제할 때, 어떻게 처리할 것인가?에 대한 옵션값
+  - RESTRICT: 삭제되도 거부(데이터 값 그대로) 
+  - CASCADE: 자동 삭제(데이터 많은 경우에는 처리가 느려질 수 있음)
+  - SET NULL: NULL로 변경(데이터 무결점 원칙 유지)
