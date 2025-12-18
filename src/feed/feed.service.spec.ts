@@ -144,8 +144,8 @@ describe('FeedService', () => {
     let feed: Feed; 
 
     beforeEach(() => {
-      jest.clearAllMocks();                 
-      mockChallengeService.findOne.mockResolvedValue(challenge);
+      jest.clearAllMocks();
+      jest.spyOn(mockChallengeService, 'findOne').mockResolvedValue(challenge);                 
       (checkThePast as jest.Mock).mockReturnValue(true);
       feed = {
         id: 3, 
@@ -161,29 +161,34 @@ describe('FeedService', () => {
     });
 
     it("피드 생성", async () => {
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+      
       const dto = { challenge_id: 1, title: '테스트3', content: '테스트3' };
-      mockFeedRepository.findOneBy.mockResolvedValue(null);
       mockFeedRepository.create.mockReturnValue(feed);
       mockFeedRepository.save.mockResolvedValue(feed);
 
       result = await service.create(3, dto, []);
       expect(mockChallengeService.findOne).toHaveBeenCalledWith(1);
       expect(checkThePast).toHaveBeenCalledWith(challenge.end_date);
-      expect(mockFeedRepository.findOneBy).toHaveBeenCalledWith({id: Not(0), title: '테스트3' });
-      expect(mockFeedRepository.create).toHaveBeenCalledWith({
-        title: dto.title,
-        content: dto.content,
-        images: [],
-        user: { id: 3},
-        challenge: { id: 1},
-      });
+      expect(service.findByTitle).toHaveBeenCalledWith(0, dto.title);
+      expect(mockFeedRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: dto.title,
+          content: dto.content,
+          images: [],
+          user: { id: 3},
+          challenge: { id: 1},
+        })
+      );
       expect(mockFeedRepository.save).toHaveBeenCalledWith(feed);
+      expect(result.id).toBe(3);
       expect(result.title).toBe('테스트3');
     });
 
     it("챌린지가 없는 경우", async () => {
+      jest.spyOn(mockChallengeService, 'findOne').mockResolvedValue(null);
       const dto = { challenge_id: 1, title: '테스트3', content: '테스트3' };
-      mockChallengeService.findOne.mockResolvedValue(null);
+
       await expect(service.create(1, dto, [])).rejects.toThrow("챌린지가 없습니다.");
     });
 
@@ -194,80 +199,81 @@ describe('FeedService', () => {
     });
 
     it("제목이 중복인 경우", async () => {
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(feeds[1]);
       const dto = { challenge_id: 1, title: '테스트2', content: '테스트' };
-      mockFeedRepository.findOneBy.mockResolvedValue(feeds[1]);
+
       await expect(service.create(1, dto, [])).rejects.toThrow("중복된 제목입니다.");
     });
   });
 
   describe("update", () => {
-    let feed: Feed;
-
-    beforeEach(()=> {
-      feed = {
-        id: 1, 
-        title: '테스트3',
-        content: '테스트3',
-        images: ['feed/1.png', 'feed/2.png'],
-        user: { id: 1} as any,
-        challenge: { id: 1} as any,
-        deleted_at: null,
-        created_at: today,
-        updated_at: today,
-      };
-    });
     it("피드 수정", async () => {
+      jest.spyOn(service, 'findOne').mockResolvedValue(feeds[0]);
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+
       const dto = { title: '테스트3', content: '테스트3' };
       const feedId = 1, userId = 1;
       const images = [{ filename: '1.png'}, {filename: '2.png'}] as any;
-
-      mockFeedRepository.findOne.mockResolvedValue(feeds[0]);
-      mockFeedRepository.findOneBy.mockResolvedValue(null);
-      mockFeedRepository.save.mockResolvedValue(feed);
+      
+      const savedImages = ['feed/1.png', 'feed/2.png'];
+      const savedEntity = { ...feeds[0], ...dto, images: savedImages };
+      mockFeedRepository.save.mockResolvedValue(savedEntity);
 
       result = await service.update(feedId, userId, dto, images);
-      expect(mockFeedRepository.findOne).toHaveBeenCalledWith({ where: {id: feedId }});
-      expect(mockFeedRepository.findOneBy).toHaveBeenCalledWith({id: Not(feedId), title: '테스트3' });
-      expect(mockFeedRepository.save).toHaveBeenCalledWith(feed);
-      expect(result).toEqual(feed);
+      expect(service.findOne).toHaveBeenCalledWith(feedId);
+      expect(service.findByTitle).toHaveBeenCalledWith(feedId, dto.title);
+      expect(mockFeedRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: feeds[0].id,
+          title: dto.title,
+          content: dto.content,
+          images: savedImages,
+        })
+      );
+      expect(result.id).toBe(1);
+      expect(result.title).toEqual(dto.title);
+      expect(result.images).not.toEqual(images);
     });
 
     it("피드가 없는 경우", async () => {
+      jest.spyOn(service, 'findOne').mockResolvedValue(null);
+
       const dto = { title: '테스트3', content: '테스트3' };
-      mockFeedRepository.findOne.mockResolvedValue(null);
       await expect(service.update(3, 1, dto, [])).rejects.toThrow("피드가 없습니다.");
     });
 
     it("제목이 중복인 경우", async () => {
+      jest.spyOn(service, 'findOne').mockResolvedValue(feeds[0]);
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(feeds[1]);
+
       const dto = { title: '테스트2', content: '테스트2' };
-      mockFeedRepository.findOne.mockResolvedValue(feeds[0]);
-      mockFeedRepository.findOneBy.mockResolvedValue(feeds[1]);
       await expect(service.update(1, 1, dto, [])).rejects.toThrow("중복된 제목입니다.");
     });
 
     it("작성자 아닌 경우", async () => {
+      jest.spyOn(service, 'findOne').mockResolvedValue(feeds[0]);
+
       const dto = { title: '테스트2', content: '테스트2' };
-      mockFeedRepository.findOne.mockResolvedValue(feeds[0]);
       await expect(service.update(1, 2, dto, [])).rejects.toThrow("작성자만 접근 가능합니다.");
     });
   });
 
   describe("delete", () => {
     it("피드 삭제", async () => {
-      mockFeedRepository.findOne.mockResolvedValue(feeds[0]);
+      jest.spyOn(service, 'findOne').mockResolvedValue(feeds[0]);
 
       result = await service.delete(1, 1);
+      expect(service.findOne).toHaveBeenCalledWith(1);
       expect(mockFeedRepository.softDelete).toHaveBeenCalledWith({id: 1});
     });
 
     it("피드가 없는 경우", async () => {
-      mockFeedRepository.findOne.mockResolvedValue(null);
+      jest.spyOn(service, 'findOne').mockResolvedValue(null);
       await expect(service.delete(3,1)).rejects.toThrow("피드가 없습니다.");
     });
 
     it("작성자가 아닌 경우", async () => {
-      mockFeedRepository.findOne.mockResolvedValue(feeds[0]);
-
+      jest.spyOn(service, 'findOne').mockResolvedValue(feeds[0]);
       await expect(service.delete(1, 3)).rejects.toThrow("작성자만 접근 가능합니다.");
     })
   });

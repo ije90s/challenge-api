@@ -43,13 +43,15 @@ describe('AuthService', () => {
     const email = 'test@gmail.com';
     const password = '1234';
     const hasedPassword = 'hashed-1234';
+    const today = new Date();
+    const userEntity = { id: 1, email, password: hasedPassword, created_at: today, updated_at: today };
 
     beforeEach(() => {
-      jest.clearAllMocks();           
+      jest.clearAllMocks();
+      jest.spyOn(mockUserService, 'findOneBy').mockResolvedValue(userEntity);           
     });
 
     it('jwt 토큰 성공', async () => {
-      mockUserService.findOneBy.mockResolvedValue({ id: 1, email, password: hasedPassword }); // 응답 주입
       mockJwtService.sign.mockReturnValue('mock-token');
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
@@ -61,13 +63,13 @@ describe('AuthService', () => {
     });
 
     it('계정이 존재하지 않는 경우', async () => {
-      mockUserService.findOneBy.mockResolvedValue(null);
+      jest.spyOn(mockUserService, 'findOneBy').mockResolvedValue(null);
 
       await expect(service.signIn({email, password })).rejects.toThrow("존재하지 않은 계정입니다.");
     });
 
     it('비밀번호가 틀린 경우', async () => {
-      mockUserService.findOneBy.mockResolvedValue({ id: 1, email, password: hasedPassword }); // 응답 주입
+      jest.spyOn(mockUserService, 'findOneBy').mockResolvedValue(userEntity);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
       
       await expect(service.signIn({ email, password })).rejects.toThrow("비밀번호가 잘못되었습니다.");
