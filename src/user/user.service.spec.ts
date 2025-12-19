@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import * as bcrypt from 'bcrypt';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { ResponseUserDto } from "./dto/response-user.dto";
 import { User } from './entity/user.entity';
 
 jest.mock('bcrypt');
@@ -46,7 +47,7 @@ describe('UserService', () => {
     beforeEach(() => {
       jest.clearAllMocks();
       (bcrypt.hash as jest.Mock).mockResolvedValue(hasedPassword);
-      jest.spyOn(service, 'findOneBy').mockResolvedValue(null);           
+      jest.spyOn(service, 'findOneByEmail').mockResolvedValue(null);           
     });
     
     it('회원가입 성공-ResponseDTO로 출력확인', async () => {
@@ -54,6 +55,7 @@ describe('UserService', () => {
       const result = await service.signUp({ email, password });
 
       expect(bcrypt.hash).toHaveBeenCalled();
+      expect(result).toBeInstanceOf(ResponseUserDto);
       expect(result).toEqual({
         id: userEntity.id,
         email: userEntity.email,
@@ -62,16 +64,16 @@ describe('UserService', () => {
     });
 
     it('계정이 존재하는 경우', async () => {
-      jest.spyOn(service, 'findOneBy').mockResolvedValue(userEntity);
+      jest.spyOn(service, 'findOneByEmail').mockResolvedValue(userEntity);
       await expect(service.signUp({email, password})).rejects.toThrow("이미 존재하는 이메일입니다.");
     });
   });
 
-  describe('findOne', () =>{
+  describe('findOneByEmail', () =>{
     it('계정이 존재하는 경우', async () => {
       const email = 'test2@gmail.com';
       jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValue({ id: 1, email, password: '1234' });
-      result = await service.findOneBy(email);
+      result = await service.findOneByEmail(email);
       expect(result.id).toBe(1);
       expect(result.email).toEqual(email);
     });
@@ -79,9 +81,17 @@ describe('UserService', () => {
     it('계정이 존재하지 않는 경우', async () => {
       mockUserRepository.findOneBy.mockResolvedValue(null);
       const email = 'test3@gmail.com';
-      result = await service.findOneBy(email);
+      result = await service.findOneByEmail(email);
       expect(result).toBeNull();
     })
+  });
+
+  describe('findOneById', () => {
+    it("ResponseDTO 확인", async () => {
+      jest.spyOn(mockUserRepository, 'findOneBy').mockResolvedValue({id: 1, email: 'test@gmail.com', password:'233'});
+      result = await service.findOneById(1);
+      expect(result).toBeInstanceOf(ResponseUserDto);
+    });
   });
 
 });

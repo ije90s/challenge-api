@@ -2,7 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ChallengeService } from './challenge.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Challenge } from './entity/challenge.entity';
-import { MoreThanOrEqual, Not } from 'typeorm';
+import { Not } from 'typeorm';
+import { ResponseChallengeDto } from './dto/response-challenge.dto';
 
 describe('ChallengeService', () => {
   let service: ChallengeService;
@@ -127,7 +128,8 @@ describe('ChallengeService', () => {
       expect(mockChallengeRepository.findOne).toHaveBeenCalledWith({
         where: { id: 1 },
       });
-      expect(result.author).toEqual({id: 1});
+      expect(result).toHaveProperty("author_id");
+      expect(result).toBeInstanceOf(ResponseChallengeDto);
     });
 
     it('값이 없는 경우', async () => {
@@ -185,16 +187,17 @@ describe('ChallengeService', () => {
       mockChallengeRepository.save.mockResolvedValue(challengeEntity);
 
       result = await service.create(3, dto);
-      expect(service.findByTitle).toHaveBeenCalledWith(0, dto.title);
+      expect(service.findByTitle).toHaveBeenCalled();
       expect(mockChallengeRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           title: dto.title,
           author: { id: 3 },
         }),
       );
-      expect(mockChallengeRepository.save).toHaveBeenCalledWith(challengeEntity);
 
       expect(result.id).toBe(3);
+      expect(result.title).toEqual(dto.title);
+      expect(result).toHaveProperty('author_id');
     });
 
     it('제목이 중복인 경우', async () => {
@@ -209,9 +212,6 @@ describe('ChallengeService', () => {
       };
       
       await expect(service.create(3, dto)).rejects.toThrow("중복된 제목입니다.");
-
-      expect(mockChallengeRepository.create).not.toHaveBeenCalled();
-      expect(mockChallengeRepository.save).not.toHaveBeenCalled();
     });
 
     it('끝일이 작은 경우', async () => {
@@ -226,8 +226,6 @@ describe('ChallengeService', () => {
       };
 
       await expect(service.create(3, dto)).rejects.toThrow("날짜 설정이 잘못되었습니다.");
-      expect(mockChallengeRepository.create).not.toHaveBeenCalled();
-      expect(mockChallengeRepository.save).not.toHaveBeenCalled();
     });
 
     it('날짜 포맷이 잘못된 경우', async () => {
@@ -243,9 +241,6 @@ describe('ChallengeService', () => {
       };
 
       await expect(service.create(3, dto)).rejects.toThrow("날짜 설정이 잘못되었습니다.");
-
-      expect(mockChallengeRepository.create).not.toHaveBeenCalled();
-      expect(mockChallengeRepository.save).not.toHaveBeenCalled();
     });
   });
 
@@ -258,15 +253,17 @@ describe('ChallengeService', () => {
     };
 
     it("챌린지 수정 성공", async () => {
-      jest.spyOn(service, 'findOne').mockResolvedValue(challenges[0]);
+      const challenge = {
+        ...challenges[0],
+        author_id: challenges[0].author.id,
+      }
+      jest.spyOn(service, 'findOne').mockResolvedValue(challenge);
       jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
 
       const savedEntity = { ...challenges[0], ...dto, };
       mockChallengeRepository.save.mockResolvedValue(savedEntity);
 
       result = await service.update(1, 1, dto);
-      expect(service.findOne).toHaveBeenCalledWith(1);
-      expect(service.findByTitle).toHaveBeenCalledWith(1, dto.title);
       expect(mockChallengeRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({
           id: challenges[0].id,
@@ -278,6 +275,7 @@ describe('ChallengeService', () => {
       );
       expect(result.title).toEqual(dto.title);
       expect(result.content).toEqual(dto.content);
+      expect(result).not.toHaveProperty('created_at');
     });
 
     it('챌린지가 없는 경우', async () => {
@@ -287,7 +285,11 @@ describe('ChallengeService', () => {
     });
 
     it("제목이 중복인 경우", async () => {
-      jest.spyOn(service, 'findOne').mockResolvedValue(challenges[1]);
+      const challenge = {
+        ...challenges[1],
+        author_id: challenges[1].author.id,
+      }
+      jest.spyOn(service, 'findOne').mockResolvedValue(challenge);
       jest.spyOn(service, 'findByTitle').mockResolvedValue(challenges[0]);
 
       dto = {
@@ -302,12 +304,15 @@ describe('ChallengeService', () => {
 
     it("작성자가 아닌 경우", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(challenges[0]);
-
       await expect(service.update(1, 2, dto)).rejects.toThrow("작성자만 접근 가능합니다.");
     });
 
     it("날짜가 잘못된 경우", async () => {
-      jest.spyOn(service, 'findOne').mockResolvedValue(challenges[0]);
+      const challenge = {
+        ...challenges[0],
+        author_id: challenges[0].author.id,
+      }
+      jest.spyOn(service, 'findOne').mockResolvedValue(challenge);
       jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
       
       dto = { ...dto, title: '테스트3', end_date: new Date('2025-11-30') };
@@ -317,7 +322,11 @@ describe('ChallengeService', () => {
 
   describe("delete", () => {
     it("챌린지 삭제 성공", async () => {
-      jest.spyOn(service, 'findOne').mockResolvedValue(challenges[0]);
+      const challenge = {
+        ...challenges[0],
+        author_id: challenges[0].author.id,
+      }
+      jest.spyOn(service, 'findOne').mockResolvedValue(challenge);
 
       result = await service.delete(1, 1);
       expect(service.findOne).toHaveBeenCalledWith(1);

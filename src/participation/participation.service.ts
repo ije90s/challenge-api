@@ -6,6 +6,7 @@ import { checkThePast } from '../common/util';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Participation } from './entity/participation.entity';
 import { Repository } from 'typeorm';
+import { ResponseParticipationDto } from './dto/response-participation.dto';
 
 
 @Injectable()
@@ -26,7 +27,7 @@ export class ParticipationService {
         });
     }
 
-    async create(userId: number, dto: CreateParticipationDto): Promise<Participation>{
+    async create(userId: number, dto: CreateParticipationDto): Promise<ResponseParticipationDto>{
 
         const challenge = await this.challegneService.findOne(dto.challenge_id);
         if(!challenge){
@@ -47,10 +48,12 @@ export class ParticipationService {
             user: { id: userId },
         });
 
-        return await this.participationRepository.save(newParticipation);
+        const savedParticipation = await this.participationRepository.save(newParticipation);
+
+        return ResponseParticipationDto.from(savedParticipation);
     }
 
-    async update(userId: number, dto: UpdateParticipationDto): Promise<Participation>{
+    async update(userId: number, dto: UpdateParticipationDto): Promise<ResponseParticipationDto>{
 
         const challenge = await this.challegneService.findOne(dto.challenge_id!);
         if(!challenge){
@@ -81,10 +84,11 @@ export class ParticipationService {
         participation.score+=score;
         participation.challenge_count+=count;
 
-        return await this.participationRepository.save(participation);
+        const savedParticipation = await this.participationRepository.save(participation);
+        return ResponseParticipationDto.from(savedParticipation);
     }
 
-    async updateStatus(userId: number, dto: UpdateParticipationDto): Promise<Participation>{
+    async updateStatus(userId: number, dto: UpdateParticipationDto): Promise<ResponseParticipationDto>{
         
         const participation = await this.findOne(dto.challenge_id!, userId);
         if(!participation){
@@ -98,7 +102,9 @@ export class ParticipationService {
         const status = participation.status === 2 ? 0 : 2;
         participation.status = status;
 
-        return await this.participationRepository.save(participation);
+        const savedParticipation = await this.participationRepository.save(participation);
+
+        return ResponseParticipationDto.from(savedParticipation);
     }
 
     async getChallengeRank(challengeId: number, userId: number, page: number, limit: number){

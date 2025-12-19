@@ -679,3 +679,78 @@ jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
   - RESTRICT: 삭제되도 거부(데이터 값 그대로) 
   - CASCADE: 자동 삭제(데이터 많은 경우에는 처리가 느려질 수 있음)
   - SET NULL: NULL로 변경(데이터 무결점 원칙 유지)
+
+### 응답값 가공
+mogoose
+- 스키마 내의 virtual()를 이용하여 노출하고 싶지 않은 데이터들을 제외시켜 전달
+```typescript
+  
+  // 스키마 내에서 선언
+  @Virtual({
+    get: function (this: Cat) {
+      return {
+        id: this._id,
+        email: this.email,
+        name: this.name,
+        imgUrl: this.imgUrl,
+        comments: this.comments,
+      }
+    },
+  })
+  readonly readOnlyData: {id: string; email: string; name:string, imgUrl: string, comments: Comments[]};
+
+  //스키마 변수를 이용한 선언
+  CatSchema.virtual('comments', { //첫번째 필드값은 조인해서 쓰이는 칼럼명
+    ref: 'Comments',     //컬렉션명
+    localField: '_id',
+    foreignField: 'info'
+  });
+  CatSchema.set('toObject', { virtuals: true});
+  CatSchema.set('toJSON', {virtuals: true});
+```
+
+typeORM
+- 응답 DTO를 이용하여 노출하고 싶지 않은 데이터들을 제외시켜 전달
+- from(), of(), create(), fromEntity() 이렇게 사용
+
+| 메소드          | 뉘앙스            |
+| ------------ | -------------- |
+| `from`       | **변환** (A → B) |
+| `of`         | **구성/생성**      |
+| `create`     | 생성 의도 명확       |
+| `fromEntity` | 가장 명시적         |
+
+```typescript
+  export class ResponseUserDto {
+    readonly id: number;
+    readonly email: string;
+
+    private constructor(entity: User) {
+      this.id = entity.id;
+      this.email = entity.email;
+    }
+
+    // 규칙 기반 변환(엔티티 > DTO)
+    static from(user: User): ResponseUserDto {
+      return new ResponseUserDto(user);
+    }
+
+    // 암묵적인 표준 규칙이 작성자의 주관에 따라 조합해서 전달
+    // 결과: 이 값들로 응답 하나 만들어”
+    // 입력 타입이 자유로움
+    // Entity일 수도 있고 
+    // 여러 값의 조합일 수도 있고
+    // 계산 결과일 수도 있음
+    // 메소드 내부를 봐야 알 수 있음
+    static of(id: string, email: string){
+      return { id, email };
+    }
+  }
+```
+
+```text
+from   : 명확한 source → target 변환
+of     : 여러 값의 조합 / 응답 전용 팩토리
+create : 도메인 객체 생성 (DTO보단 Entity)
+
+```

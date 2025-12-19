@@ -6,6 +6,7 @@ import { checkThePast } from '../common/util';
 import { Feed } from './entity/feed.entity';
 import { Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ResponseFeedDto } from './dto/response-feed.dto';
 
 @Injectable()
 export class FeedService {
@@ -46,15 +47,17 @@ export class FeedService {
         }
     }
 
-    async findOne(feedId: number): Promise<Feed | null>{
-        return await this.feedRepository.findOne({ where: { id: feedId }});
+    async findOne(feedId: number): Promise<ResponseFeedDto | null>{
+        const feed = await this.feedRepository.findOne({ where: { id: feedId }});
+        return feed ? ResponseFeedDto.from(feed) : null;
     }
 
-    async findByTitle(feedId: number, title: string): Promise<Feed | null>{
-        return await this.feedRepository.findOneBy({ id: Not(feedId), title })
+    async findByTitle(feedId: number, title: string): Promise<ResponseFeedDto | null>{
+        const feed = await this.feedRepository.findOneBy({ id: Not(feedId), title });
+        return feed ? ResponseFeedDto.from(feed) : null;
     }
 
-    async create(userId: number, dto: CreateFeedDto, images: Express.Multer.File[]): Promise<Feed>{
+    async create(userId: number, dto: CreateFeedDto, images: Express.Multer.File[]): Promise<ResponseFeedDto>{
         const challenge = await this.challengeService.findOne(dto.challenge_id);
         if(!challenge){
             throw new UnauthorizedException("챌린지가 없습니다.");
@@ -78,16 +81,19 @@ export class FeedService {
             user: { id: userId },
             challenge: { id: dto.challenge_id },
         });
-        return await this.feedRepository.save(newFeed);
+
+        const savedFeed = await this.feedRepository.save(newFeed);
+
+        return ResponseFeedDto.from(savedFeed);
     }
 
-    async update(feedId: number, userId: number, dto: UpdateFeedDto, images: Express.Multer.File[]): Promise<Feed>{
+    async update(feedId: number, userId: number, dto: UpdateFeedDto, images: Express.Multer.File[]): Promise<ResponseFeedDto>{
         const feed = await this.findOne(feedId);
         if(!feed){
             throw new UnauthorizedException("피드가 없습니다.");
         }
 
-        if(feed.user.id !== userId){
+        if(feed.user_id !== userId){
             throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
         
@@ -100,7 +106,9 @@ export class FeedService {
         dto.images = this.getFileArr(images) ?? feed.images;
         
         Object.assign(feed, dto);
-        return await this.feedRepository.save(feed);
+        const savedFeed = await this.feedRepository.save(feed);
+
+        return ResponseFeedDto.from(savedFeed);
     }
 
     async delete(feedId: number, userId: number): Promise<void>{
@@ -109,7 +117,7 @@ export class FeedService {
             throw new UnauthorizedException("피드가 없습니다.");
         }
 
-        if(feed.user.id !== userId){
+        if(feed.user_id !== userId){
             throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
 

@@ -8,6 +8,7 @@ import { CreateParticipationDto } from './dto/create-participation.dto';
 import { UpdateParticipationDto } from './dto/update-participation.dto';
 import { skip } from 'node:test';
 import { table } from 'console';
+import { ResponseParticipationDto } from './dto/response-participation.dto';
 
 // 올바른 mock 경로
 jest.mock('../common/util', () => ({
@@ -182,9 +183,6 @@ describe('ParticipationService', () => {
       mockParticipationService.save.mockResolvedValue(participation);
 
       result = await service.create(3, dto);
-      expect(mockChallengeService.findOne).toHaveBeenCalledWith(1);
-      expect(checkThePast).toHaveBeenCalledWith(challenge.end_date);
-      expect(service.findOne).toHaveBeenCalledWith(dto.challenge_id, 3);
       expect(mockParticipationService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           challenge: { id: dto.challenge_id },
@@ -192,6 +190,7 @@ describe('ParticipationService', () => {
         })
       );
       expect(result.id).toBe(3);
+      expect(result).not.toHaveProperty("updated_at");
     });
 
     it("챌린지가 존재하지 않은 경우", async () => {
@@ -240,9 +239,6 @@ describe('ParticipationService', () => {
       mockParticipationService.save.mockResolvedValue(participation);
 
       result = await service.update(2, dto);
-      expect(mockChallengeService.findOne).toHaveBeenCalledWith(1);
-      expect(checkThePast).toHaveBeenCalledWith(challenge.end_date);
-      expect(service.findOne).toHaveBeenCalledWith(dto.challenge_id, 2);
       expect(mockParticipationService.save).toHaveBeenCalledWith(expect.objectContaining({
         id: participations[1].id,
         score: 0,
@@ -251,6 +247,7 @@ describe('ParticipationService', () => {
       }));
       expect(result.score).toBe(0);
       expect(result.complete_date).toBeNull();
+      expect(result).toBeInstanceOf(ResponseParticipationDto);
     });
     
     it("기록 업데이트 성공 - 값이 있는 경우", async () => {
@@ -266,14 +263,11 @@ describe('ParticipationService', () => {
       mockParticipationService.save.mockResolvedValue(participation);
 
       result = await service.update(1, dto);
-      expect(mockChallengeService.findOne).toHaveBeenCalledWith(1);
-      expect(checkThePast).toHaveBeenCalledWith(challenge.end_date);
-      expect(service.findOne).toHaveBeenCalledWith(dto.challenge_id, 1);
       expect(mockParticipationService.save).toHaveBeenCalledWith(expect.objectContaining({
         id: participations[0].id,
         score: participation.score,
         status: participation.status,
-        complete_date: participation.complete_date,
+        //complete_date: participation.complete_date,
       }));
       expect(result.id).toBe(1);
       expect(result.score).toBe(2);

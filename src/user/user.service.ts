@@ -14,7 +14,7 @@ export class UserService {
         const { email, password } = dto;
         
         // DB 연결 전 확인 
-        const user = await this.findOneBy(email);
+        const user = await this.findOneByEmail(email);
         if(user){
             throw new ConflictException("이미 존재하는 이메일입니다.");
         }
@@ -28,7 +28,12 @@ export class UserService {
         return ResponseUserDto.from(savedUser);
     }
 
-    async findOneBy(email: string): Promise<User | null>{
+    async findOneByEmail(email: string): Promise<User | null>{
         return await this.userRepository.findOneBy({ email });
+    }
+
+    async findOneById(id: number): Promise<ResponseUserDto | null>{
+        const user = await this.userRepository.findOneBy({id});
+        return user ? ResponseUserDto.from(user) : null;
     }
 }

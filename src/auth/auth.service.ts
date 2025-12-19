@@ -13,7 +13,7 @@ export class AuthService {
 
     async signIn(dto: LoginUserDto){
         const {email, password } = dto;
-        const user = await this.userService.findOneBy(email);
+        const user = await this.userService.findOneByEmail(email);
         if(!user){
             throw new UnauthorizedException("존재하지 않은 계정입니다.");
         }
