@@ -5,12 +5,14 @@ import { checkDate } from '../common/util';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Challenge } from './entity/challenge.entity';
 import { MoreThanOrEqual, Not, Repository } from 'typeorm';
+import { ResponseChallengeDto } from './dto/response-challenge.dto';
+import { ResponsePagingDto } from '../common/dto/response-paging.dto';
 
 @Injectable()
 export class ChallengeService {
     constructor(@InjectRepository(Challenge) private challengeRepository: Repository<Challenge>){}
 
-    async findAll(page: number, limit: number){
+    async findAll(page: number, limit: number): Promise<ResponsePagingDto<ResponseChallengeDto>>{
         page = page ?? 1;
         limit = limit ?? 10;
         const today = new Date();
@@ -22,29 +24,24 @@ export class ChallengeService {
             order: {created_at: "DESC" },
         });
 
-        return {
-            items,
-            meta: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit),
-            },
-        };
+        const newItems = ResponseChallengeDto.fromEntity(items);
+        const meta = ResponsePagingDto.metaOf(total, page, limit);
+        
+        return ResponsePagingDto.of<ResponseChallengeDto>({ items: newItems, meta });
     }
 
-    async findOne(challengeId: number): Promise<Challenge | null> {
-        return await this.challengeRepository.findOne({
+    async findOne(challengeId: number): Promise<ResponseChallengeDto | null> {
+        const challenge = await this.challengeRepository.findOne({
             where: { id: challengeId },
-            //relations: ['author'],
         });
+        return challenge ? ResponseChallengeDto.from(challenge) : null;
     }
 
     async findByTitle(challengeId: number, title: string): Promise<Challenge | null>{
         return await this.challengeRepository.findOneBy({ id: Not(challengeId), title })
     }
 
-    async create(userId: number, dto: CreateChallengeDto): Promise<Challenge>{
+    async create(userId: number, dto: CreateChallengeDto): Promise<ResponseChallengeDto>{
         const {title, start_date, end_date } = dto;
  
         // 제목 중복 확인
@@ -59,18 +56,19 @@ export class ChallengeService {
         }
 
         const newChallenge = this.challengeRepository.create({ ...dto, author: { id: userId } });
+        const savedChallenge = await this.challengeRepository.save(newChallenge);
 
-        return await this.challengeRepository.save(newChallenge);
+        return ResponseChallengeDto.from(savedChallenge);
     }
 
-    async update(challengeId: number, userId: number, dto: UpdateChallengeDto): Promise<Challenge> {
+    async update(challengeId: number, userId: number, dto: UpdateChallengeDto): Promise<ResponseChallengeDto> {
         const challenge = await this.findOne(challengeId);
 
         if (!challenge) {
             throw new NotFoundException("챌린지가 없습니다.");
         }
 
-        if (challenge.author.id !== userId) {
+        if (challenge.author_id !== userId) {
             throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
 
@@ -91,8 +89,9 @@ export class ChallengeService {
         }
 
         Object.assign(challenge, dto);
+        const savedChallenge = await this.challengeRepository.save(challenge);
 
-        return await this.challengeRepository.save(challenge);
+        return ResponseChallengeDto.from(savedChallenge);
     }
 
     async delete(challengeId: number, userId: number): Promise<void> {
@@ -102,7 +101,7 @@ export class ChallengeService {
             throw new NotFoundException("챌린지가 없습니다.");
         }
 
-        if(challenge.author.id !== userId){
+        if(challenge.author_id !== userId){
             throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
 

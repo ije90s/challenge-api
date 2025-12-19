@@ -5,6 +5,7 @@ import { AuthService } from '../auth/auth.service';
 import { LoginUserDto } from '../auth/dto/login-user.dto';
 import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
 import { User } from '../common/user.decorator';
+import { ResponseUserDto } from './dto/response-user.dto';
 
 @Controller('user')
 export class UserController {
@@ -15,14 +16,14 @@ export class UserController {
     ){}
 
     @Post()
-    signUp(@Body() dto: CreateUserDto){
-        return this.userService.signUp(dto);
+    async signUp(@Body() dto: CreateUserDto): Promise<ResponseUserDto>{
+        return await this.userService.signUp(dto);
     }
 
     @UseGuards(JwtAuthGuard)
     @Get("me")
-    fineOne(@User() user){
-        return user;
+    async fineOne(@User() user): Promise<ResponseUserDto | null>{
+        return await this.userService.findOneById(user.userId);
     }
 
     @Post("login")

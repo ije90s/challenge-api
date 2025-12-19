@@ -4,6 +4,8 @@ import { ChallengeService } from './challenge.service';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
 import { User } from '../common/user.decorator';
 import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
+import { ResponseChallengeDto } from './dto/response-challenge.dto';
+import { ResponsePagingDto } from '../common/dto/response-paging.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('challenge')
@@ -12,27 +14,27 @@ export class ChallengeController {
     constructor(private readonly challengeService: ChallengeService){}
 
     @Get()
-    findAll(@Query('page') page: number, @Query('limit') limit: number){
-        return this.challengeService.findAll(page, limit);
+    async findAll(@Query('page') page: number, @Query('limit') limit: number): Promise<ResponsePagingDto<ResponseChallengeDto>>{
+        return await this.challengeService.findAll(page, limit);
     }
 
     @Post()
-    create(@User() user, @Body() dto: CreateChallengeDto){
-        return this.challengeService.create(user.userId, dto);
+    async create(@User() user, @Body() dto: CreateChallengeDto): Promise<ResponseChallengeDto>{
+        return await this.challengeService.create(user.userId, dto);
     }
 
     @Patch(":challengeId")
-    modify(@Param("challengeId") challengeId: number, @User() user, @Body() dto: UpdateChallengeDto){
-        return this.challengeService.update(challengeId, user.userId, dto);
+    async modify(@Param("challengeId") challengeId: number, @User() user, @Body() dto: UpdateChallengeDto): Promise<ResponseChallengeDto>{
+        return await this.challengeService.update(challengeId, user.userId, dto);
     }
 
     @Delete(":challengeId")
-    delete(@Param("challengeId") challengeId: number, @User() user){
-        return this.challengeService.delete(challengeId, user.userId);
+    async delete(@Param("challengeId") challengeId: number, @User() user): Promise<void>{
+        return await this.challengeService.delete(challengeId, user.userId);
     }
 
     @Get(":challengeId")
-    findOne(@Param("challengeId") challengeId: number){
-        return this.challengeService.findOne(challengeId);
+    async findOne(@Param("challengeId") challengeId: number): Promise<ResponseChallengeDto | null>{
+        return await this.challengeService.findOne(challengeId);
     }
 }

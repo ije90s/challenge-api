@@ -22,7 +22,7 @@ export class Challenge extends CommonEntity {
     @Column({type: 'timestamp', nullable: false })
     end_date: Date;
 
-    @ManyToOne(() => User, {nullable: false})
+    @ManyToOne(() => User, { onDelete: 'SET NULL' })
     @JoinColumn({ name: "user_id" })
     author: User;
 
