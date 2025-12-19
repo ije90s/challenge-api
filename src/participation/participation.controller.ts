@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
 import { User } from '../common/user.decorator';
 import { CreateParticipationDto } from './dto/create-participation.dto';
 import { ResponseParticipationDto } from './dto/response-participation.dto';
+import { ResponsePagingDto } from '../common/dto/response-paging.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('participation/challenge')
@@ -28,12 +29,12 @@ export class ParticipationController {
     }
 
     @Get("rank/:challengeId")
-    getChallengeRank(@Param("challengeId") challengeId: number, @User() user, @Query("page") page: number, @Query("limit") limit: number){
-        return this.participationService.getChallengeRank(challengeId, user.userId, page, limit);
+    async getChallengeRank(@Param("challengeId") challengeId: number, @User() user, @Query("page") page: number, @Query("limit") limit: number): Promise<ResponsePagingDto<ResponseParticipationDto>>{
+        return await this.participationService.getChallengeRank(challengeId, user.userId, page, limit);
     }
 
     @Get("mine")
-    getMyChallenge(@User() user, @Query("page") page: number, @Query("limit") limit: number){
-        return this.participationService.getMyChallenge(user.userId, page, limit);
+    async getMyChallenge(@User() user, @Query("page") page: number, @Query("limit") limit: number): Promise<ResponsePagingDto<ResponseParticipationDto>>{
+        return await this.participationService.getMyChallenge(user.userId, page, limit);
     }
 }

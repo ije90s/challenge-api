@@ -7,6 +7,7 @@ import { multerOptions } from "../common/util";
 import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
 import { User } from '../common/user.decorator';
 import { ResponseFeedDto } from './dto/response-feed.dto';
+import { ResponsePagingDto } from 'src/common/dto/response-paging.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('feed')
@@ -15,8 +16,8 @@ export class FeedController {
     constructor(private readonly feedService: FeedService){}
 
     @Get("challenge/:challengeId")
-    findAll(@Param("challengeId") challengeId: number, @Query("page") page: number, @Query("limit") limit: number){
-        return this.feedService.findAll(challengeId, page, limit);
+    async findAll(@Param("challengeId") challengeId: number, @Query("page") page: number, @Query("limit") limit: number): Promise<ResponsePagingDto<ResponseFeedDto>>{
+        return await this.feedService.findAll(challengeId, page, limit);
     }
 
     @Get(":feedId")

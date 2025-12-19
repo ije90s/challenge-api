@@ -20,4 +20,8 @@ export class ResponseParticipationDto {
   static from(participation: Participation): ResponseParticipationDto {
     return new ResponseParticipationDto(participation);
   }
+
+  static fromEntity(participations: Participation[]): ResponseParticipationDto[]{
+    return participations.map(participation => ResponseParticipationDto.from(participation));
+  }
 }

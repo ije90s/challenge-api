@@ -6,6 +6,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Feed } from './entity/feed.entity';
 import { Not } from 'typeorm';
 import { ResponseFeedDto } from './dto/response-feed.dto';
+import { ResponsePagingDto } from '../common/dto/response-paging.dto';
 
 // 올바른 mock 경로
 jest.mock('../common/util', () => ({
@@ -78,16 +79,26 @@ describe('FeedService', () => {
   });
 
   describe("findAll", () => {
-    it("전체 리스트" , async () => {
-      jest.spyOn(mockFeedRepository, 'findAndCount').mockResolvedValue([[{} as any], 1]);
+    it("ResponseDTO 확인" , async () => {
+      jest.spyOn(mockFeedRepository, 'findAndCount').mockResolvedValue([[feeds[0]], 1]);
       result = await service.findAll(1, 1, 10);
-      expect(result).toHaveProperty('items');
-      expect(result).toHaveProperty('meta');
-      expect(result.meta).toHaveProperty('total');
-      expect(result.meta).toHaveProperty('page');
-      expect(result.meta).toHaveProperty('limit');
-      expect(result.meta).toHaveProperty('totalPages');
+      expect(result).toBeInstanceOf(ResponsePagingDto);
+      expect(result.items).toBeInstanceOf(Array);
+      expect(result.items[0]).toBeInstanceOf(ResponseFeedDto);
+      expect(result.meta).toBeInstanceOf(Object);
     });
+
+    it("쿼리-조건절 & 정렬 확인", async () => {
+      jest.spyOn(mockFeedRepository, 'findAndCount').mockResolvedValue([[feeds[0]], 1]);
+
+      await service.findAll(1, 1, 10);
+      expect(mockFeedRepository.findAndCount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { challenge: { id: 1 }},
+          order: { created_at: 'DESC' },
+        })
+      );
+    })
   });
 
   describe("findOne", () => {

@@ -6,12 +6,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Challenge } from './entity/challenge.entity';
 import { MoreThanOrEqual, Not, Repository } from 'typeorm';
 import { ResponseChallengeDto } from './dto/response-challenge.dto';
+import { ResponsePagingDto } from '../common/dto/response-paging.dto';
 
 @Injectable()
 export class ChallengeService {
     constructor(@InjectRepository(Challenge) private challengeRepository: Repository<Challenge>){}
 
-    async findAll(page: number, limit: number){
+    async findAll(page: number, limit: number): Promise<ResponsePagingDto<ResponseChallengeDto>>{
         page = page ?? 1;
         limit = limit ?? 10;
         const today = new Date();
@@ -23,15 +24,10 @@ export class ChallengeService {
             order: {created_at: "DESC" },
         });
 
-        return {
-            items,
-            meta: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit),
-            },
-        };
+        const newItems = ResponseChallengeDto.fromEntity(items);
+        const meta = ResponsePagingDto.metaOf(total, page, limit);
+        
+        return ResponsePagingDto.of<ResponseChallengeDto>({ items: newItems, meta });
     }
 
     async findOne(challengeId: number): Promise<ResponseChallengeDto | null> {

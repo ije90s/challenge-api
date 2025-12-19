@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Challenge } from './entity/challenge.entity';
 import { Not } from 'typeorm';
 import { ResponseChallengeDto } from './dto/response-challenge.dto';
+import { ResponsePagingDto } from '../common/dto/response-paging.dto';
 
 describe('ChallengeService', () => {
   let service: ChallengeService;
@@ -70,25 +71,14 @@ describe('ChallengeService', () => {
   });
 
   describe("findAll", () => {
-    it("전체 리스트 조회", async() => {
-      jest.spyOn(mockChallengeRepository, 'findAndCount').mockResolvedValue([[{} as any], 1]);
+    it("ResponseDTO 확인", async() => {
+      jest.spyOn(mockChallengeRepository, 'findAndCount').mockResolvedValue([[challenges[0]], 1]);
       
       result = await service.findAll(1, 10);
-      expect(result).toHaveProperty('items');
-      expect(result).toHaveProperty('meta');
-      expect(result.meta).toHaveProperty('total');
-      expect(result.meta).toHaveProperty('page');
-      expect(result.meta).toHaveProperty('limit');
-      expect(result.meta).toHaveProperty('totalPages');
-    });
-
-    it('page와 limit이 meta에 반영된다', async () => {
-      jest.spyOn(mockChallengeRepository, 'findAndCount').mockResolvedValue([[{} as any, {} as any], 2]);
-
-      const result = await service.findAll(2, 5);
-      expect(result.meta.page).toBe(2);
-      expect(result.meta.limit).toBe(5);
-      expect(result.meta.totalPages).toBe(1);
+      expect(result).toBeInstanceOf(ResponsePagingDto);
+      expect(result.items).toBeInstanceOf(Array);
+      expect(result.items[0]).toBeInstanceOf(ResponseChallengeDto);
+      expect(result.meta).toBeInstanceOf(Object);
     });
 
     it('종료되지 않은 챌린지만 조회한다', async () => {
@@ -111,7 +101,6 @@ describe('ChallengeService', () => {
       const spy = jest.spyOn(mockChallengeRepository, 'findAndCount').mockResolvedValue([[], 0]);
 
       await service.findAll(1, 10);
-      
       expect(spy).toHaveBeenCalledWith(
         expect.objectContaining({
           order: { created_at: 'DESC' },

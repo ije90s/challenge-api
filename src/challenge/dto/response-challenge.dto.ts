@@ -24,4 +24,8 @@ export class ResponseChallengeDto {
   static from(challenge: Challenge): ResponseChallengeDto {
     return new ResponseChallengeDto(challenge);
   }
+
+  static fromEntity(challenges: Challenge[]): ResponseChallengeDto[]{
+    return challenges.map(challenge => this.from(challenge));
+  }
 }

@@ -20,4 +20,8 @@ export class ResponseFeedDto {
   static from(feed: Feed): ResponseFeedDto {
     return new ResponseFeedDto(feed);
   }
+
+  static fromEntity(feeds: Feed[]): ResponseFeedDto[]{
+    return feeds.map(feed => ResponseFeedDto.from(feed));
+  }
 }

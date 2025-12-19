@@ -5,6 +5,7 @@ import { UpdateChallengeDto } from './dto/update-challenge.dto';
 import { User } from '../common/user.decorator';
 import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
 import { ResponseChallengeDto } from './dto/response-challenge.dto';
+import { ResponsePagingDto } from '../common/dto/response-paging.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('challenge')
@@ -13,8 +14,8 @@ export class ChallengeController {
     constructor(private readonly challengeService: ChallengeService){}
 
     @Get()
-    findAll(@Query('page') page: number, @Query('limit') limit: number){
-        return this.challengeService.findAll(page, limit);
+    async findAll(@Query('page') page: number, @Query('limit') limit: number): Promise<ResponsePagingDto<ResponseChallengeDto>>{
+        return await this.challengeService.findAll(page, limit);
     }
 
     @Post()

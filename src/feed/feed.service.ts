@@ -7,6 +7,7 @@ import { Feed } from './entity/feed.entity';
 import { Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ResponseFeedDto } from './dto/response-feed.dto';
+import { ResponsePagingDto } from '../common/dto/response-paging.dto';
 
 @Injectable()
 export class FeedService {
@@ -26,7 +27,7 @@ export class FeedService {
         return fileNameArr;
     }
     
-    async findAll(challengeId: number, page: number, limit: number){
+    async findAll(challengeId: number, page: number, limit: number): Promise<ResponsePagingDto<ResponseFeedDto>>{
         page = page ?? 1;
         limit = limit ?? 10;
         const [items, total] = await this.feedRepository.findAndCount({
@@ -35,16 +36,11 @@ export class FeedService {
             take: limit,
             order: { created_at: 'DESC' },
         });
-
-        return {
-            items,
-            meta: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total/limit),
-            }
-        }
+        
+        const newItems = ResponseFeedDto.fromEntity(items);
+        const meta = ResponsePagingDto.metaOf(total, page, limit);
+        
+        return ResponsePagingDto.of<ResponseFeedDto>({ items: newItems, meta });
     }
 
     async findOne(feedId: number): Promise<ResponseFeedDto | null>{

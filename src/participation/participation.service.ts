@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Participation } from './entity/participation.entity';
 import { Repository } from 'typeorm';
 import { ResponseParticipationDto } from './dto/response-participation.dto';
+import { ResponsePagingDto } from '../common/dto/response-paging.dto';
 
 
 @Injectable()
@@ -107,7 +108,7 @@ export class ParticipationService {
         return ResponseParticipationDto.from(savedParticipation);
     }
 
-    async getChallengeRank(challengeId: number, userId: number, page: number, limit: number){
+    async getChallengeRank(challengeId: number, userId: number, page: number, limit: number): Promise<ResponsePagingDto<ResponseParticipationDto>>{
 
         const challenge = await this.challegneService.findOne(challengeId);
         if(!challenge){
@@ -132,18 +133,13 @@ export class ParticipationService {
             .take(limit)
             .getManyAndCount();
 
-        return {
-            items,
-            meta: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total/limit),
-            }
-        };
+        const newItems = ResponseParticipationDto.fromEntity(items);
+        const meta = ResponsePagingDto.metaOf(total, page, limit);
+                
+        return ResponsePagingDto.of<ResponseParticipationDto>({ items: newItems, meta });
     }
 
-    async getMyChallenge(userId: number, page: number, limit: number){
+    async getMyChallenge(userId: number, page: number, limit: number): Promise<ResponsePagingDto<ResponseParticipationDto>>{
         page = page ?? 1;
         limit = limit ?? 10;
 
@@ -154,14 +150,9 @@ export class ParticipationService {
             order: { created_at: 'DESC' },
         });
 
-        return {
-            items,
-            meta: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit),
-            },
-        };
+        const newItems = ResponseParticipationDto.fromEntity(items);
+        const meta = ResponsePagingDto.metaOf(total, page, limit);
+                
+        return ResponsePagingDto.of<ResponseParticipationDto>({ items: newItems, meta });
     }
 }
