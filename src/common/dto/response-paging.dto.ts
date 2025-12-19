@@ -23,7 +23,6 @@ export class ResponsePagingDto<T> {
     return { total, page, limit, totalPages: Math.ceil(total / limit) }
   }
 
-  // 엔티티 > DTO로 반환하는 거 아니기 때문에, 
   static of<T>(p: {items: T[]; meta: PagingMeta }): ResponsePagingDto<T> {
     return new ResponsePagingDto(p);
   }

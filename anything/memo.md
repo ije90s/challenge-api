@@ -680,7 +680,7 @@ jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
   - CASCADE: 자동 삭제(데이터 많은 경우에는 처리가 느려질 수 있음)
   - SET NULL: NULL로 변경(데이터 무결점 원칙 유지)
 
-### 응답값 가공
+### ResponseDTO
 mogoose
 - 스키마 내의 virtual()를 이용하여 노출하고 싶지 않은 데이터들을 제외시켜 전달
 ```typescript
@@ -711,7 +711,8 @@ mogoose
 
 typeORM
 - 응답 DTO를 이용하여 노출하고 싶지 않은 데이터들을 제외시켜 전달
-- from(), of(), create(), fromEntity() 이렇게 사용
+- from(), of(), create(), fromEntity() 사용하여 리턴값 조정
+- fromEntity() == plainToInstance (단, plainToInstance 사용하려면, 생성자를 public으로 선언해야 함)
 
 | 메소드          | 뉘앙스            |
 | ------------ | -------------- |
@@ -753,4 +754,44 @@ from   : 명확한 source → target 변환
 of     : 여러 값의 조합 / 응답 전용 팩토리
 create : 도메인 객체 생성 (DTO보단 Entity)
 
+```
+- 제너릭: 타입을 나중에 결정하는 문법
+  - T는 타입 변수
+  - 호출 시점에 타입이 결정됨
+  - 예: CRUD 서비스, 공통 Response DTO, Pagination, Base Repository / Base Service
+  - 장점: 타입 안정성 ↑, 중복 코드 ↓, 재사용성 ↑
+
+```typescript
+
+function identity<T>(value: T): T {
+  return value;
+}
+
+identity<number>(123);
+identity<string>('heloo');
+
+type PagingMeta = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export class ResponsePagingDto<T> {
+  
+  @Type(() => Object) 
+  readonly items: T[];
+
+  readonly meta: PagingMeta;
+
+  private constructor(p: {items: T[]; meta: PagingMeta}) {
+    this.items = p.items;
+    this.meta = p.meta;
+  }
+  
+  // 엔티티 > DTO로 반환하는 거 아니기 때문에, 리스트와 페이징 정보를 전달해야 하므로
+  static of<T>(p: {items: T[]; meta: PagingMeta }): ResponsePagingDto<T> {
+    return new ResponsePagingDto(p);
+  }
+}
 ```
