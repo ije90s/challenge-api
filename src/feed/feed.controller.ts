@@ -6,6 +6,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { multerOptions } from "../common/util";
 import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
 import { User } from '../common/user.decorator';
+import { ResponseFeedDto } from './dto/response-feed.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('feed')
@@ -19,25 +20,25 @@ export class FeedController {
     }
 
     @Get(":feedId")
-    findOne(@Param("feedId") feedId: number){
-        return this.feedService.findOne(feedId);
+    async findOne(@Param("feedId") feedId: number): Promise<ResponseFeedDto | null>{
+        return await this.feedService.findOne(feedId);
     }
 
     // TODO: multer 예외 처리 추가 
     @Post()
     @UseInterceptors(FilesInterceptor('images', 3, multerOptions("feed")))
-    createFeed(@User() user, @Body() dto: CreateFeedDto, @UploadedFiles() images: Array<Express.Multer.File>){
-        return this.feedService.create(user.userId, dto, images);
+    async createFeed(@User() user, @Body() dto: CreateFeedDto, @UploadedFiles() images: Array<Express.Multer.File>): Promise<ResponseFeedDto>{
+        return await this.feedService.create(user.userId, dto, images);
     }
 
     @Patch(":feedId")
     @UseInterceptors(FilesInterceptor('images', 3, multerOptions("feed")))
-    updateFeed(@Param("feedId") feedId: number, @User() user, @Body() dto: UpdateFeedDto, @UploadedFiles() images: Array<Express.Multer.File>){
-        return this.feedService.update(feedId, user.userId, dto, images);
+    async updateFeed(@Param("feedId") feedId: number, @User() user, @Body() dto: UpdateFeedDto, @UploadedFiles() images: Array<Express.Multer.File>): Promise<ResponseFeedDto>{
+        return await this.feedService.update(feedId, user.userId, dto, images);
     }
 
     @Delete(":feedId")
-    deleteFeed(@Param("feedId") feedId: number, @User() user){
-        return this.feedService.delete(feedId, user.userId);
+    async deleteFeed(@Param("feedId") feedId: number, @User() user): Promise<void> {
+        return await this.feedService.delete(feedId, user.userId);
     }
 }

@@ -4,6 +4,7 @@ import { UpdateParticipationDto } from './dto/update-participation.dto';
 import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
 import { User } from '../common/user.decorator';
 import { CreateParticipationDto } from './dto/create-participation.dto';
+import { ResponseParticipationDto } from './dto/response-participation.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('participation/challenge')
@@ -12,18 +13,18 @@ export class ParticipationController {
     constructor(private readonly participationService: ParticipationService){}
     
     @Post()
-    joinChallenge(@User() user, dto: CreateParticipationDto){
-        return this.participationService.create(user.userId, dto);
+    async joinChallenge(@User() user, dto: CreateParticipationDto): Promise<ResponseParticipationDto>{
+        return await this.participationService.create(user.userId, dto);
     }
 
     @Patch()
-    updateChallenge(@User() user, @Body() dto: UpdateParticipationDto){
-        return this.participationService.update(user.userId, dto);
+    async updateChallenge(@User() user, @Body() dto: UpdateParticipationDto): Promise<ResponseParticipationDto>{
+        return await this.participationService.update(user.userId, dto);
     }
 
     @Patch("giveup")
-    giveupChallenge(@User() user, dto: UpdateParticipationDto){
-        return this.participationService.updateStatus(user.userId, dto);
+    async giveupChallenge(@User() user, dto: UpdateParticipationDto): Promise<ResponseParticipationDto>{
+        return await this.participationService.updateStatus(user.userId, dto);
     }
 
     @Get("rank/:challengeId")
