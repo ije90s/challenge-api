@@ -795,3 +795,53 @@ export class ResponsePagingDto<T> {
   }
 }
 ```
+
+### TypeORM 마이그레이션
+코드 형상 관리 처럼 마이그레이션을 이용하여 DB 스키마를 안전하게 버전 관리
+NestJS에서는 마이그레이션 관련 cli를 직접 제공하기 않기 때문에 [TypeORM 문서](https://typeorm.io/docs/migrations/why/)를 보고 진행
+- 실행 순서: 엔티티 생성 > 마이그레이션 파일 생성 > 검토 > 실행 > 확인/원복
+- `ts-node` 패키지 설치 필수
+- 앱/웹 서버와 별도로 마이그레이션 환경 설정을 따로 둔다. 예) typeorm.datasource.ts
+  - 모두 다 옵션값은 `synchronize: false` 상태여아 한다.
+  - 마이그레이션 환경설정의 옵션값
+    ```text
+    migrations: 경로 지정
+    migrationsRun: 마이그레이션 실행 자동 여부(디폴트: false)
+    migrationsTableName: DB 내 테이블명(디폴트: migrations)
+    migrationsTransactionMode: 트랜잭션 처리 여부(디폴트: all)
+    ```
+- 명령어
+  - 스크립트 내에서 ts-node 명령어를 등록해서 더 간편하게 사용할 수 있다.
+  - migration:generate: 엔티티에 수정된 사항을 알아서 자동으로 생성
+    - DB 초기 셋팅할 때 사용
+  - migration:create: 스키마 변경 사항을 수동으로 쿼리 작성
+    - up(), down() 함수만 자동 생성되며, 그 함수 안에서 쿼리를 작성해야 한다.
+      - up() : 쿼리 변경 내용(칼럼 추가, 인덱스 추가 등의 변경 사항)
+      - down() : 변경 사항을 원복할 때, 처리
+    - DB 스키마 등의 안정화되었다면, 운영 중에 사용
+    - 파일명은 어떤 변경 사항을 했는지에 대해 네이밍을 한다.
+  - migration:run: 생성된 마이그레이션 파일 실행 > migrations 테이블에 생성
+  - migration:revert: 최신 마이그레이션으로 원복
+```shell
+# DataSource로 엔티티를 자동을 생성
+# <path/to/datasource>: 파일 경로
+# <migration-name>: 파일명
+typeorm migration:generate -d <path/to/datasource> <migration-name>
+
+# DataSource 참조없이 단순 파일 생성
+npx typeorm migration:create <path/to/migrations>/<migration-name>
+
+# 마이그레이션 실행
+typeorm migration:run -- -d path-to-datasource-config
+
+# 마이그레이션 원복
+typeorm migration:revert -- -d path-to-datasource-config
+
+# 마이그레이션 확인
+typeorm migration:show -- -d path-to-datasource-config
+
+```
+- 마이그레이션 파일은 {타임스탬프}-파일명.{js,ts} 형태로 생성되며, 타임스탬프 기준으로 migrations 테이블에 데이터가 생성된다. 
+  - 이 기준으로 스키마 변경 사항을 알 수 있으며, 이전 단계로 원복할 수 있다. 
+- ❗️ 마이그레이션 파일을 새로 생성한다면, 쿼리가 맞게 되는지 검토 필수
+- 참조: https://velog.io/@cabbage/NestJS-TypeORM-%EB%A7%88%EC%9D%B4%EA%B7%B8%EB%A0%88%EC%9D%B4%EC%85%98
