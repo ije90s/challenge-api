@@ -680,7 +680,7 @@ jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
   - CASCADE: 자동 삭제(데이터 많은 경우에는 처리가 느려질 수 있음)
   - SET NULL: NULL로 변경(데이터 무결점 원칙 유지)
 
-### 응답값 가공
+### ResponseDTO
 mogoose
 - 스키마 내의 virtual()를 이용하여 노출하고 싶지 않은 데이터들을 제외시켜 전달
 ```typescript
@@ -711,7 +711,8 @@ mogoose
 
 typeORM
 - 응답 DTO를 이용하여 노출하고 싶지 않은 데이터들을 제외시켜 전달
-- from(), of(), create(), fromEntity() 이렇게 사용
+- from(), of(), create(), fromEntity() 사용하여 리턴값 조정
+- fromEntity() == plainToInstance (단, plainToInstance 사용하려면, 생성자를 public으로 선언해야 함)
 
 | 메소드          | 뉘앙스            |
 | ------------ | -------------- |
@@ -754,3 +755,93 @@ of     : 여러 값의 조합 / 응답 전용 팩토리
 create : 도메인 객체 생성 (DTO보단 Entity)
 
 ```
+- 제너릭: 타입을 나중에 결정하는 문법
+  - T는 타입 변수
+  - 호출 시점에 타입이 결정됨
+  - 예: CRUD 서비스, 공통 Response DTO, Pagination, Base Repository / Base Service
+  - 장점: 타입 안정성 ↑, 중복 코드 ↓, 재사용성 ↑
+
+```typescript
+
+function identity<T>(value: T): T {
+  return value;
+}
+
+identity<number>(123);
+identity<string>('heloo');
+
+type PagingMeta = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export class ResponsePagingDto<T> {
+  
+  @Type(() => Object) 
+  readonly items: T[];
+
+  readonly meta: PagingMeta;
+
+  private constructor(p: {items: T[]; meta: PagingMeta}) {
+    this.items = p.items;
+    this.meta = p.meta;
+  }
+  
+  // 엔티티 > DTO로 반환하는 거 아니기 때문에, 리스트와 페이징 정보를 전달해야 하므로
+  static of<T>(p: {items: T[]; meta: PagingMeta }): ResponsePagingDto<T> {
+    return new ResponsePagingDto(p);
+  }
+}
+```
+
+### TypeORM 마이그레이션
+코드 형상 관리 처럼 마이그레이션을 이용하여 DB 스키마를 안전하게 버전 관리
+NestJS에서는 마이그레이션 관련 cli를 직접 제공하기 않기 때문에 [TypeORM 문서](https://typeorm.io/docs/migrations/why/)를 보고 진행
+- 실행 순서: 엔티티 생성 > 마이그레이션 파일 생성 > 검토 > 실행 > 확인/원복
+- `ts-node` 패키지 설치 필수
+- 앱/웹 서버와 별도로 마이그레이션 환경 설정을 따로 둔다. 예) typeorm.datasource.ts
+  - 모두 다 옵션값은 `synchronize: false` 상태여아 한다.
+  - 마이그레이션 환경설정의 옵션값
+    ```text
+    migrations: 경로 지정
+    migrationsRun: 마이그레이션 실행 자동 여부(디폴트: false)
+    migrationsTableName: DB 내 테이블명(디폴트: migrations)
+    migrationsTransactionMode: 트랜잭션 처리 여부(디폴트: all)
+    ```
+- 명령어
+  - 스크립트 내에서 ts-node 명령어를 등록해서 더 간편하게 사용할 수 있다.
+  - migration:generate: 엔티티에 수정된 사항을 알아서 자동으로 생성
+    - DB 초기 셋팅할 때 사용
+  - migration:create: 스키마 변경 사항을 수동으로 쿼리 작성
+    - up(), down() 함수만 자동 생성되며, 그 함수 안에서 쿼리를 작성해야 한다.
+      - up() : 쿼리 변경 내용(칼럼 추가, 인덱스 추가 등의 변경 사항)
+      - down() : 변경 사항을 원복할 때, 처리
+    - DB 스키마 등의 안정화되었다면, 운영 중에 사용
+    - 파일명은 어떤 변경 사항을 했는지에 대해 네이밍을 한다.
+  - migration:run: 생성된 마이그레이션 파일 실행 > migrations 테이블에 생성
+  - migration:revert: 최신 마이그레이션으로 원복
+```shell
+# DataSource로 엔티티를 자동을 생성
+# <path/to/datasource>: 파일 경로
+# <migration-name>: 파일명
+typeorm migration:generate -d <path/to/datasource> <migration-name>
+
+# DataSource 참조없이 단순 파일 생성
+npx typeorm migration:create <path/to/migrations>/<migration-name>
+
+# 마이그레이션 실행
+typeorm migration:run -- -d path-to-datasource-config
+
+# 마이그레이션 원복
+typeorm migration:revert -- -d path-to-datasource-config
+
+# 마이그레이션 확인
+typeorm migration:show -- -d path-to-datasource-config
+
+```
+- 마이그레이션 파일은 {타임스탬프}-파일명.{js,ts} 형태로 생성되며, 타임스탬프 기준으로 migrations 테이블에 데이터가 생성된다. 
+  - 이 기준으로 스키마 변경 사항을 알 수 있으며, 이전 단계로 원복할 수 있다. 
+- ❗️ 마이그레이션 파일을 새로 생성한다면, 쿼리가 맞게 되는지 검토 필수
+- 참조: https://velog.io/@cabbage/NestJS-TypeORM-%EB%A7%88%EC%9D%B4%EA%B7%B8%EB%A0%88%EC%9D%B4%EC%85%98

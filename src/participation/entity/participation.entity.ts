@@ -8,10 +8,10 @@ import { Challenge } from "../../challenge/entity/challenge.entity";
 @Index('idx_challenge_count_rank', ['challenge', 'challenge_count', 'created_at'])
 export class Participation extends CommonEntity{
 
-    @Column({type: 'int4', nullable: false, default: 0})
+    @Column({type: 'int', nullable: false, default: 0})
     score: number;
 
-    @Column({type: 'int4', nullable: false, default: 0})
+    @Column({type: 'int', nullable: false, default: 0})
     challenge_count: number;
 
     @Column({type: 'tinyint', nullable: false, default: 0})

@@ -12,7 +12,7 @@ export class Feed extends CommonEntity {
     @Column({type: 'text', nullable: false })
     content: string;
 
-    @Column({type: 'array', nullable: true })
+    @Column({type: 'json', nullable: true })
     images?: string[] | null;
 
     @ManyToOne(() => User, { onDelete: 'SET NULL' })
