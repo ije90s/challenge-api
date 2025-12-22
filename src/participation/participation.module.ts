@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ParticipationService } from './participation.service';
 import { ParticipationController } from './participation.controller';
-import { ChallengeModule } from 'src/challenge/challenge.module';
+import { ChallengeModule } from '../challenge/challenge.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Participation } from './entity/participation.entity';
 
