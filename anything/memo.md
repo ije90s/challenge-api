@@ -798,14 +798,15 @@ export class ResponsePagingDto<T> {
 
 ### TypeORM 마이그레이션
 코드 형상 관리 처럼 마이그레이션을 이용하여 DB 스키마를 안전하게 버전 관리
+
 NestJS에서는 마이그레이션 관련 cli를 직접 제공하기 않기 때문에 [TypeORM 문서](https://typeorm.io/docs/migrations/why/)를 보고 진행
-- 실행 순서: 엔티티 생성 > 마이그레이션 파일 생성 > 검토 > 실행 > 확인/원복
+- 실행 순서: 엔티티 생성/수정 > 마이그레이션 파일 생성 > 검토 > 실행 > 확인/원복
 - `ts-node` 패키지 설치 필수
 - 앱/웹 서버와 별도로 마이그레이션 환경 설정을 따로 둔다. 예) typeorm.datasource.ts
   - 모두 다 옵션값은 `synchronize: false` 상태여아 한다.
   - 마이그레이션 환경설정의 옵션값
     ```text
-    migrations: 경로 지정
+    migrations: 엔티티 경로 지정
     migrationsRun: 마이그레이션 실행 자동 여부(디폴트: false)
     migrationsTableName: DB 내 테이블명(디폴트: migrations)
     migrationsTransactionMode: 트랜잭션 처리 여부(디폴트: all)
@@ -822,26 +823,68 @@ NestJS에서는 마이그레이션 관련 cli를 직접 제공하기 않기 때�
     - 파일명은 어떤 변경 사항을 했는지에 대해 네이밍을 한다.
   - migration:run: 생성된 마이그레이션 파일 실행 > migrations 테이블에 생성
   - migration:revert: 최신 마이그레이션으로 원복
-```shell
-# DataSource로 엔티티를 자동을 생성
-# <path/to/datasource>: 파일 경로
-# <migration-name>: 파일명
-typeorm migration:generate -d <path/to/datasource> <migration-name>
+  ```shell
+  # DataSource로 엔티티를 자동을 생성
+  # <path/to/datasource>: 파일 경로
+  # <migration-name>: 파일명
+  typeorm migration:generate -d <path/to/datasource> <migration-name>
 
-# DataSource 참조없이 단순 파일 생성
-npx typeorm migration:create <path/to/migrations>/<migration-name>
+  # DataSource 참조없이 단순 파일 생성
+  npx typeorm migration:create <path/to/migrations>/<migration-name>
 
-# 마이그레이션 실행
-typeorm migration:run -- -d path-to-datasource-config
+  # 마이그레이션 실행
+  typeorm migration:run -- -d path-to-datasource-config
 
-# 마이그레이션 원복
-typeorm migration:revert -- -d path-to-datasource-config
+  # 마이그레이션 원복
+  typeorm migration:revert -- -d path-to-datasource-config
 
-# 마이그레이션 확인
-typeorm migration:show -- -d path-to-datasource-config
-
-```
+  # 마이그레이션 확인
+  typeorm migration:show -- -d path-to-datasource-config
+  ```
 - 마이그레이션 파일은 {타임스탬프}-파일명.{js,ts} 형태로 생성되며, 타임스탬프 기준으로 migrations 테이블에 데이터가 생성된다. 
   - 이 기준으로 스키마 변경 사항을 알 수 있으며, 이전 단계로 원복할 수 있다. 
 - ❗️ 마이그레이션 파일을 새로 생성한다면, 쿼리가 맞게 되는지 검토 필수
+- ❗️ 마이그레이션과 엔티티는 변경 사항을 항상 동일하게 맞춘다. (웹/앱 서버에서도 변경된 스키마 기준으로 운영 가능)
 - 참조: https://velog.io/@cabbage/NestJS-TypeORM-%EB%A7%88%EC%9D%B4%EA%B7%B8%EB%A0%88%EC%9D%B4%EC%85%98
+
+### E2E 테스트
+사용자가 실제로 API를 호출했을 때, 시스템이 처음부터 끝까지 정상 동작하는지”를 검증하는 테스트
+
+NestJS는 E2E를 위한 `@nest/testing`에서 제공하므로(jest & supertest 기반), 스크립트를 이용하여 편리하게 테스트 진행
+- jest-e2e.json: 환경 설정
+- app.e2e-spec.ts: e2e 테스트 파일
+  - app 모듈을 import하며, main.ts에 설정된 서버 셋팅을 맞춰서 진행
+  - 절대경로 대신 상대경로 변경해서 진행
+
+📌 언제 E2E를 쓰는가?
+
+API가 실제로 요청 → 응답까지 잘 되는지
+
+인증 / 미들웨어 / 파이프 / 인터셉터 동작 확인
+
+라우팅, DTO validation, ExceptionFilter 확인
+
+“이 API는 진짜 배포해도 되나?” 최종 확인
+
+📌 핵심 포인트
+
+createTestingModule → 실제 DI 컨테이너 생성
+
+AppModule 그대로 사용
+
+supertest로 실제 HTTP 요청
+
+Controller / Pipe / Guard / Interceptor 전부 통과
+
+Challenge
+  - Param: ParseIntPipe를 추가하여 request의 값 명확히 하도록 처리
+  - Query: RequestQueryDto 객체를 새로 만들어 쿼리스트링에 대한 값을 철저히 valid & 디폴트 지정
+    - DefaultValuePipe로 지정하려고 했으나, 타입이 string도 디폴트로 지정(부트스트랩의 파이프 옵션값(transform) 때문에 자동으로 타입을 undefined로 처리)
+  - findOne() & findAll(): 관계 설정 없이 값을 가져오려고 했으나, ResponseChallengeDto.author == undefined가 되어 관계까지 명시해서 가져오도록 수정
+  - findByTitle(): 삭제된 데이터까지 포함해서 조회 쿼리 되도록 변경(withDeleted)
+    - challenge.title이 unique로 설정되어 있어 위반
+  - findOneById(): 챌린지 상세 조회 할때, ResponseChallengeDTO 객체로 리턴되도록 함수 하나 더 추가 
+    - 기존의 findOne()으로 하려고 했으나, 수정/삭제할때, 이 값을 참조하여 작성자와 똑같은지에 유효성 검사를 하기 때문에 따로 빼서 처리
+
+  
+  
