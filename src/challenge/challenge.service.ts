@@ -13,12 +13,11 @@ export class ChallengeService {
     constructor(@InjectRepository(Challenge) private challengeRepository: Repository<Challenge>){}
 
     async findAll(page: number, limit: number): Promise<ResponsePagingDto<ResponseChallengeDto>>{
-        page = page ?? 1;
-        limit = limit ?? 10;
         const today = new Date();
 
         const [items, total] = await this.challengeRepository.findAndCount({
             where: { end_date: MoreThanOrEqual(today) },
+            relations: ["author"],
             skip: (page - 1) * limit, 
             take: limit,
             order: {created_at: "DESC" },
@@ -30,15 +29,28 @@ export class ChallengeService {
         return ResponsePagingDto.of<ResponseChallengeDto>({ items: newItems, meta });
     }
 
-    async findOne(challengeId: number): Promise<ResponseChallengeDto | null> {
-        const challenge = await this.challengeRepository.findOne({
+    async findOne(challengeId: number): Promise<Challenge | null> {
+        
+        return await this.challengeRepository.findOne({
             where: { id: challengeId },
+            relations: ["author"]
         });
-        return challenge ? ResponseChallengeDto.from(challenge) : null;
     }
 
     async findByTitle(challengeId: number, title: string): Promise<Challenge | null>{
-        return await this.challengeRepository.findOneBy({ id: Not(challengeId), title })
+        return await this.challengeRepository.findOne({
+            where: {
+                id: Not(challengeId),
+                title,
+            },
+            withDeleted: true,
+        });
+    }
+
+    async findOneById(challengeId: number): Promise<ResponseChallengeDto | null>{
+        const challenge = await this.findOne(challengeId);
+
+        return challenge ? ResponseChallengeDto.from(challenge) : null;
     }
 
     async create(userId: number, dto: CreateChallengeDto): Promise<ResponseChallengeDto>{
@@ -57,7 +69,7 @@ export class ChallengeService {
 
         const newChallenge = this.challengeRepository.create({ ...dto, author: { id: userId } });
         const savedChallenge = await this.challengeRepository.save(newChallenge);
-
+  
         return ResponseChallengeDto.from(savedChallenge);
     }
 
@@ -68,7 +80,7 @@ export class ChallengeService {
             throw new NotFoundException("챌린지가 없습니다.");
         }
 
-        if (challenge.author_id !== userId) {
+        if (challenge.author.id !== userId) {
             throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
 
@@ -101,7 +113,7 @@ export class ChallengeService {
             throw new NotFoundException("챌린지가 없습니다.");
         }
 
-        if(challenge.author_id !== userId){
+        if(challenge.author.id !== userId){
             throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
 

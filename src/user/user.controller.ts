@@ -23,7 +23,7 @@ export class UserController {
     @UseGuards(JwtAuthGuard)
     @Get("me")
     async fineOne(@User() user): Promise<ResponseUserDto | null>{
-        return await this.userService.findOneById(user.userId);
+        return await this.userService.findOneById(user.id);
     }
 
     @Post("login")
