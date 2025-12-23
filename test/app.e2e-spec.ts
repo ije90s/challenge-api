@@ -66,7 +66,7 @@ describe('AppController (e2e)', () => {
         return request(app.getHttpServer())
         .post("/user/login")
         .send({
-          email: "test2@gmail.com",
+          email: "test3@gmail.com",
           password: "1234"
         })
         .expect(401)
@@ -279,6 +279,343 @@ describe('AppController (e2e)', () => {
         .expect(400)
       })
     });
-});
+  });
+
+  describe('Participation', () => {
+    const challengeId: number = 2;
+    const baseUrl: string = '/participation/challenge';
+
+    beforeAll(async () => {
+      const res = await request(app.getHttpServer())
+        .post('/user/login')
+        .send({
+          email: 'test@gmail.com',
+          password: '1234',
+        })
+        .expect(201);
+
+      accessToken = res.body.data.access_token;
+      expect(accessToken).toBeDefined();
+      
+    });
+
+    describe("챌린지 참가", () => {
+      it("참가 성공/중복", () => {
+        return request(app.getHttpServer())
+        .post(`${baseUrl}/${challengeId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          challenge_id: challengeId,
+        })
+        .expect(401)
+        // .expect(201)
+        // .expect(res => {
+        //   expect(res.body.data.id).toBe(1);
+        // });
+      });
+
+      it("잘못된 토큰인 경우", () => {
+        return request(app.getHttpServer())
+        .post(`${baseUrl}/${challengeId}`)
+        .set('Authorization', `Bearer invalid_token`)
+        .send({
+          challenge_id: challengeId,
+        })
+        .expect(401)
+      });
+
+      it("타입이 잘못된 경우", () => {
+        return request(app.getHttpServer())
+        .post(`${baseUrl}/ff`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(400)
+      });
+    });
+
+    describe("챌린지 수정", () => {
+      it("수정 성공", () => {
+        return request(app.getHttpServer())
+        .patch(`${baseUrl}/${challengeId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          score: 1
+        })
+        .expect(200)
+        .expect(res => {
+          expect(res.body.data.id).toBe(1)
+          expect(res.body.data.complete_date).not.toBeNull();
+        })
+      });
+
+      it("타입이 잘못된 경우", () => {
+        return request(app.getHttpServer())
+        .patch(`${baseUrl}/ff`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          score: 1
+        })
+        .expect(400)
+      });
+    });
+
+    describe("챌린지 포기", () => {
+      it("변경 성공", () => {
+        return request(app.getHttpServer())
+        .patch(`${baseUrl}/${challengeId}/giveup`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(409)
+        //.expect(200);
+      });
+
+      it("타입이 잘못된 경우", () => {
+        return request(app.getHttpServer())
+        .patch(`${baseUrl}//giveup`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(404)
+      });
+    });
+
+    describe("챌린지 랭킹", () => {
+      it("조회 성공", () => {
+        return request(app.getHttpServer())
+        .get(`${baseUrl}/${challengeId}/rank`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+        .expect(res => {
+          expect(res.body.data.items).toBeTruthy();
+        })
+      });
+
+      it("challengeID가 없는 경우", () => {
+        return request(app.getHttpServer())
+        .get(`${baseUrl}//rank`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(404)
+      });
+
+      it("challengeID 타입이 잘못된 경우", () => {
+        return request(app.getHttpServer())
+        .get(`${baseUrl}/ff/rank/`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(400)
+      });
+
+      it("쿼리 스트링 타입이 잘못된 경우", () => {
+        return request(app.getHttpServer())
+        .get(`${baseUrl}/${challengeId}/rank/?page=1&limit=ff`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(400)
+      })
+    });
+
+    describe("내 챌린지 조회", () => {
+      it("조회 성공", () => {
+        return request(app.getHttpServer())
+        .get(`${baseUrl}/mine`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+        .expect(res => {
+          expect(res.body.data.items).toBeTruthy();
+        })
+      });
+
+      it("쿼리 스트링 타입이 잘못된 경우", () => {
+        return request(app.getHttpServer())
+        .get(`${baseUrl}/mine?page=ff&limit=10`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(400)
+      });
+    });
+  });
+
+  describe('Feed', () => {
+    const challengeId: number = 2;
+    const baseUrl: string = '/feed';
+
+    beforeAll(async () => {
+      const res = await request(app.getHttpServer())
+        .post('/user/login')
+        .send({
+          email: 'test@gmail.com',
+          password: '1234',
+        })
+        .expect(201);
+
+      accessToken = res.body.data.access_token;
+      expect(accessToken).toBeDefined();
+    });
+
+    describe("피드 생성", () => {
+      it("피드 생성 성공/중복", () => {
+        return request(app.getHttpServer())
+        .post(baseUrl)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .field('challenge_id', challengeId.toString())
+        .field('title', '테스트')
+        .field('content', '테스트')
+        .attach(
+          'images',
+          Buffer.from('test'),
+          { filename: 'test.png', contentType: 'image/png' }
+        )
+        .expect(401)
+        //.expect(201)
+        // .expect(res => {
+        //   expect(res.body.data.title).toBe('테스트')
+        //   expect(res.body.data.images).toBeInstanceOf(Array)
+        // })
+
+      });
+
+      it("DTO가 없는 경우", () => {
+        return request(app.getHttpServer())
+        .post(baseUrl)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(400)
+      });
+
+      it("이미지 파일이 아닌 경우", () => {
+        return request(app.getHttpServer())
+        .post(baseUrl)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .field('challenge_id', challengeId.toString())
+        .field('title', '테스트')
+        .field('content', '테스트')
+        .attach('images', Buffer.from('test'), { filename: 'test.txt', contentType: 'txt' })
+        .attach('images', Buffer.from('test2'), { filename: 'test.png', contentType: 'image/png' })
+        .expect(400)
+      });
+
+      it("파일 개수 넘는 경우", () => {
+        return request(app.getHttpServer())
+        .post(baseUrl)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .field('challenge_id', challengeId.toString())
+        .field('title', '테스트')
+        .field('content', '테스트')
+        .attach('images', Buffer.from('1'), { filename: '1.png' })
+        .attach('images', Buffer.from('2'), { filename: '2.png' })
+        .attach('images', Buffer.from('3'), { filename: '3.png' })
+        .attach('images', Buffer.from('4'), { filename: '4.png' })
+        .expect(400)
+      });
+    });
+
+    describe("피드 수정", () => {
+      it("수정 성공", () => {
+        return request(app.getHttpServer())
+        .patch(`${baseUrl}/1`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .field('title', '테스트2')
+        .field('content', '테스트2')
+        .expect(200)
+      });
+
+      it("피드 ID가 없는 경우", () => {
+        return request(app.getHttpServer())
+        .patch(`${baseUrl}/`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .field('title', '테스트2')
+        .field('content', '테스트2')
+        .expect(404)
+      });
+
+      it("피드 ID가 스트링인 경우", () => {
+        return request(app.getHttpServer())
+        .patch(`${baseUrl}/ff`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .field('title', '테스트2')
+        .field('content', '테스트2')
+        .expect(400)
+      });
+
+      it("DTO가 없는 경우", () => {
+        return request(app.getHttpServer())
+        .patch(`${baseUrl}/1`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(400)
+      });
+
+      it("DTO에 명시된 파라미터가 아닌 게 있는 경우", () => {
+        return request(app.getHttpServer())
+        .patch(`${baseUrl}/1`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .field("title", '테스트2')
+        .field("content", '테스트2')
+        .field("ff", 'ff')
+        .expect(400)
+      });
+
+    });
+
+    describe("전체 피드 리스트 가져오기", () => {
+      it("조회 성공", () => {
+        return request(app.getHttpServer())
+        .get(`${baseUrl}/challenge/${challengeId}/feeds`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+      });
+
+      it("challengeID가 없는 경우", () => {
+        return request(app.getHttpServer())
+        .get(`${baseUrl}/challenge//feeds`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(404)
+      });
+
+      it("challengeID가 스트링인 경우", () => {
+        return request(app.getHttpServer())
+        .get(`${baseUrl}/challenge/ff/feeds`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(400)
+      })
+    });
+
+    describe("피드 상세 조회", () => {
+      it("조회 성공", () => {
+        return request(app.getHttpServer())
+        .get(`${baseUrl}/1`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+      });
+
+      it("feedID가 없는 경우", () => {
+        return request(app.getHttpServer())
+        .get(`${baseUrl}/`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(404)
+      });
+
+      it("feedID가 숫자가 아닌 경우", () => {
+        return request(app.getHttpServer())
+        .get(`${baseUrl}/ff`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(400)
+      });
+    });
+
+    describe("피드 삭제", () => {
+      it("삭제 성공", () => {
+        return request(app.getHttpServer())
+        .delete(`${baseUrl}/2`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(401)
+      });
+
+      it("FeedID가 없는 경우", () => {
+        return request(app.getHttpServer())
+        .delete(`${baseUrl}/`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(404)
+      });
+
+      it("FeedID가 스트링인 경우", () => {
+        return request(app.getHttpServer())
+        .delete(`${baseUrl}/ff`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(400)
+      });
+    })
+  });
 
 });

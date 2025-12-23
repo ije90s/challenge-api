@@ -28,10 +28,9 @@ export class FeedService {
     }
     
     async findAll(challengeId: number, page: number, limit: number): Promise<ResponsePagingDto<ResponseFeedDto>>{
-        page = page ?? 1;
-        limit = limit ?? 10;
         const [items, total] = await this.feedRepository.findAndCount({
             where: {challenge: {id : challengeId }},
+            relations: ['user', 'challenge'],
             skip: (page-1) * limit,
             take: limit,
             order: { created_at: 'DESC' },
@@ -43,13 +42,25 @@ export class FeedService {
         return ResponsePagingDto.of<ResponseFeedDto>({ items: newItems, meta });
     }
 
-    async findOne(feedId: number): Promise<ResponseFeedDto | null>{
-        const feed = await this.feedRepository.findOne({ where: { id: feedId }});
-        return feed ? ResponseFeedDto.from(feed) : null;
+    async findOne(feedId: number): Promise<Feed | null>{
+        return await this.feedRepository.findOne({ 
+            where: { id: feedId },
+            relations: ['user', 'challenge'],
+        });
     }
 
-    async findByTitle(feedId: number, title: string): Promise<ResponseFeedDto | null>{
-        const feed = await this.feedRepository.findOneBy({ id: Not(feedId), title });
+    async findByTitle(feedId: number, title: string): Promise<Feed | null>{
+        return await this.feedRepository.findOne({
+            where: {
+                id: Not(feedId),
+                title,
+            },
+            withDeleted: true,
+        });
+    }
+
+    async findOneById(feedId: number): Promise<ResponseFeedDto | null>{
+        const feed = await this.findOne(feedId);
         return feed ? ResponseFeedDto.from(feed) : null;
     }
 
@@ -89,7 +100,7 @@ export class FeedService {
             throw new UnauthorizedException("피드가 없습니다.");
         }
 
-        if(feed.user_id !== userId){
+        if(feed.user.id !== userId){
             throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
         
@@ -113,7 +124,7 @@ export class FeedService {
             throw new UnauthorizedException("피드가 없습니다.");
         }
 
-        if(feed.user_id !== userId){
+        if(feed.user.id !== userId){
             throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
 
