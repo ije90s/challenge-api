@@ -18,7 +18,7 @@ export class ParticipationController {
         return await this.participationService.create(user.id, challengeId);
     }
 
-    @Patch(":challengeId/giveup")
+    @Get(":challengeId/giveup")
     async giveupChallenge(@User() user, @Param("challengeId", ParseIntPipe) challengeId: number): Promise<ResponseParticipationDto>{
         return await this.participationService.updateStatus(user.id, challengeId);
     }

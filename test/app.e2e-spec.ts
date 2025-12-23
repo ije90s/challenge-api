@@ -361,7 +361,7 @@ describe('AppController (e2e)', () => {
     describe("챌린지 포기", () => {
       it("변경 성공", () => {
         return request(app.getHttpServer())
-        .patch(`${baseUrl}/${challengeId}/giveup`)
+        .get(`${baseUrl}/${challengeId}/giveup`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(409)
         //.expect(200);
@@ -369,7 +369,7 @@ describe('AppController (e2e)', () => {
 
       it("타입이 잘못된 경우", () => {
         return request(app.getHttpServer())
-        .patch(`${baseUrl}//giveup`)
+        .get(`${baseUrl}//giveup`)
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(404)
       });
@@ -504,10 +504,10 @@ describe('AppController (e2e)', () => {
     describe("피드 수정", () => {
       it("수정 성공", () => {
         return request(app.getHttpServer())
-        .patch(`${baseUrl}/1`)
+        .patch(`${baseUrl}/3`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .field('title', '테스트2')
-        .field('content', '테스트2')
+        .field('title', '테스트3')
+        .field('content', '테스트3')
         .expect(200)
       });
 

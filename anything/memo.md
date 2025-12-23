@@ -893,6 +893,7 @@ Participation
   - 챌린지 FK 오타로 마이그레이션 진행(칼럼명 수정)
   - URI 경로 재수정 및 위치 변경
     - @Patch(":challengeId"), @Patch("giveup/:challengeId") 이런식으로 경로를 지정하니, `/participation/challenge/giveup/` 호출했을 때, 404 에러 대신 400 에러 처리
+    - 메소드 Patch > Get으로 변경
 Feed
   - Challenge처럼 Param, Query, findOne(), findOneById() 처리 동일
   - URI 경로 재수정
