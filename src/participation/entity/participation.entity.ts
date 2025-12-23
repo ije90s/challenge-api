@@ -25,7 +25,7 @@ export class Participation extends CommonEntity{
     user: User;
 
     @ManyToOne(() => Challenge, { onDelete: 'SET NULL' })
-    @JoinColumn({ name: "challege_id" })
+    @JoinColumn({ name: "challenge_id" })
     challenge: Challenge;
 
     @DeleteDateColumn({ type: "timestamp", nullable: true, default: null })

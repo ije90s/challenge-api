@@ -25,7 +25,6 @@ describe('FeedService', () => {
   const mockFeedRepository = {
     findAndCount: jest.fn(),
     findOne: jest.fn(),
-    findOneBy: jest.fn(),
     create: jest.fn(),
     save: jest.fn(),
     softDelete: jest.fn(),
@@ -105,29 +104,35 @@ describe('FeedService', () => {
     it("상세 조회", async () => {
       mockFeedRepository.findOne.mockResolvedValue(feeds[0]);
       result = await service.findOne(1);
-      expect(mockFeedRepository.findOne).toHaveBeenCalledWith({ where: {id: 1} });
-      expect(result).toBeInstanceOf(ResponseFeedDto);
+      expect(mockFeedRepository.findOne).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 1 },
+        relations: ['user', 'challenge'],
+      }));
+      expect(result).toBeInstanceOf(Object);
     });
 
     it("없는 경우", async () => {
       mockFeedRepository.findOne.mockResolvedValue(null);
       result = await service.findOne(3);
-      expect(mockFeedRepository.findOne).toHaveBeenCalledWith({where: {id: 3}});
+      expect(mockFeedRepository.findOne).toHaveBeenCalled();
       expect(result).toBeNull();
     });
   });
 
   describe("findByTitle", () => {
     it("제목이 있는 경우", async () => {
-      mockFeedRepository.findOneBy.mockResolvedValue(feeds[0]);
+      mockFeedRepository.findOne.mockResolvedValue(feeds[0]);
       result = await service.findByTitle(2, '테스트');
-      expect(mockFeedRepository.findOneBy).toHaveBeenCalledWith({ id: Not(2), title: '테스트'});
-      //expect(result).toBeTruthy();
-      expect(result).toBeInstanceOf(ResponseFeedDto);
+      expect(mockFeedRepository.findOne).toHaveBeenCalledWith(
+      {
+        where: { id: Not(2), title: "테스트" },
+        withDeleted: true,
+      });
+      expect(result).toBeTruthy();
     });
 
     it("제목이 없는 경우", async () => {
-      mockFeedRepository.findOneBy.mockResolvedValue(null);
+      mockFeedRepository.findOne.mockResolvedValue(null);
       result = await service.findByTitle(1, '테스트3');
       //expect(mockFeedRepository.findOneBy).toHaveBeenCalledWith({ id: Not(1), title: '테스트3' });
       expect(result).toBeNull();

@@ -1,5 +1,4 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
-import { CreateParticipationDto } from './dto/create-participation.dto';
 import { UpdateParticipationDto } from './dto/update-participation.dto';
 import { ChallengeService } from '../challenge/challenge.service';
 import { checkThePast } from '../common/util';
@@ -24,13 +23,13 @@ export class ParticipationService {
                 challenge: { id: challengeId },
                 user: { id: userId },
             },
-            //relations: ['challenge', 'user'],
+            relations: ['challenge', 'user'],
         });
     }
 
-    async create(userId: number, dto: CreateParticipationDto): Promise<ResponseParticipationDto>{
+    async create(userId: number, challengeId: number): Promise<ResponseParticipationDto>{
 
-        const challenge = await this.challegneService.findOne(dto.challenge_id);
+        const challenge = await this.challegneService.findOne(challengeId);
         if(!challenge){
             throw new ForbiddenException("챌린지가 존재하지 않습니다.");
         }
@@ -39,13 +38,13 @@ export class ParticipationService {
             throw new UnauthorizedException("기간이 지났습니다.");
         }
 
-        const participation = await this.findOne(dto.challenge_id, userId);
+        const participation = await this.findOne(challengeId, userId);
         if(participation){
             throw new UnauthorizedException("이미 참가중입니다.");
         }
 
         const newParticipation = this.participationRepository.create({ 
-            challenge: { id: dto.challenge_id },
+            challenge: { id: challengeId },
             user: { id: userId },
         });
 
@@ -54,9 +53,9 @@ export class ParticipationService {
         return ResponseParticipationDto.from(savedParticipation);
     }
 
-    async update(userId: number, dto: UpdateParticipationDto): Promise<ResponseParticipationDto>{
+    async update(userId: number, challengeId: number, dto: UpdateParticipationDto): Promise<ResponseParticipationDto>{
 
-        const challenge = await this.challegneService.findOne(dto.challenge_id!);
+        const challenge = await this.challegneService.findOne(challengeId);
         if(!challenge){
             throw new NotFoundException("챌린지가 존재하지 않습니다.");
         }
@@ -65,7 +64,7 @@ export class ParticipationService {
             throw new BadRequestException("기간이 지났습니다.");
         }
         
-        const participation = await this.findOne(dto.challenge_id!, userId);
+        const participation = await this.findOne(challengeId, userId);
         if(!participation){
             throw new ForbiddenException("참가하지 않았습니다.");
         }
@@ -89,9 +88,9 @@ export class ParticipationService {
         return ResponseParticipationDto.from(savedParticipation);
     }
 
-    async updateStatus(userId: number, dto: UpdateParticipationDto): Promise<ResponseParticipationDto>{
+    async updateStatus(userId: number, challengeId: number): Promise<ResponseParticipationDto>{
         
-        const participation = await this.findOne(dto.challenge_id!, userId);
+        const participation = await this.findOne(challengeId, userId);
         if(!participation){
             throw new ForbiddenException("참가하지 않았습니다.");
         }
@@ -121,8 +120,6 @@ export class ParticipationService {
         }
 
         // 타입에 따라 정렬
-        page = page ?? 1;
-        limit = limit ?? 10;
         const orderField = challenge.type === 0 ? 'p.score' : 'p.challenge_count';
         const [items, total] = await this.participationRepository
             .createQueryBuilder('p')
@@ -140,9 +137,6 @@ export class ParticipationService {
     }
 
     async getMyChallenge(userId: number, page: number, limit: number): Promise<ResponsePagingDto<ResponseParticipationDto>>{
-        page = page ?? 1;
-        limit = limit ?? 10;
-
         const [items, total] = await this.participationRepository.findAndCount({
             where: { user: { id: userId }, },
             skip: (page-1)*limit,

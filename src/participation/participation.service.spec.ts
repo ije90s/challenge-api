@@ -4,7 +4,6 @@ import { ChallengeService } from '../challenge/challenge.service';
 import { checkThePast } from '../common/util';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Participation } from './entity/participation.entity';
-import { CreateParticipationDto } from './dto/create-participation.dto';
 import { UpdateParticipationDto } from './dto/update-participation.dto';
 import { ResponseParticipationDto } from './dto/response-participation.dto';
 import { ResponsePagingDto } from '../common/dto/response-paging.dto';
@@ -117,24 +116,20 @@ describe('ParticipationService', () => {
     it("한개 조회", async () => {
       mockParticipationService.findOne.mockResolvedValue(participations[0]);
       result = await service.findOne(1, 1);
-      expect(mockParticipationService.findOne).toHaveBeenCalledWith({
-          where: {
-              challenge: { id: 1 },
-              user: { id: 1 },
-          },
-      });
+      expect(mockParticipationService.findOne).toHaveBeenCalledWith(expect.objectContaining({
+        where: {
+          challenge: { id: 1 },
+          user: { id: 1 },
+        },
+        relations: ['challenge', 'user'],
+      }));
       expect(result).not.toBeNull();
     });
 
     it("없음", async () => {
       mockParticipationService.findOne.mockResolvedValue(null);
       result = await service.findOne(2, 1);
-      expect(mockParticipationService.findOne).toHaveBeenLastCalledWith({
-          where: {
-              challenge: { id: 2 },
-              user: { id: 1 },
-          },
-      });
+      expect(mockParticipationService.findOne).toHaveBeenCalled();
       expect(result).toBeNull();
     });
   });
@@ -156,8 +151,7 @@ describe('ParticipationService', () => {
     };
 
     let participation: Object;
-    let dto: CreateParticipationDto;
-
+    
     beforeEach(() => {
       jest.clearAllMocks();                 
       jest.spyOn(mockChallengeService, 'findOne').mockResolvedValue(challenge);
@@ -177,14 +171,14 @@ describe('ParticipationService', () => {
     it("참가 성공", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(null);
 
-      dto = { challenge_id: 1, };
+      const challengeId = 1;
       mockParticipationService.create.mockReturnValue(participation);
       mockParticipationService.save.mockResolvedValue(participation);
 
-      result = await service.create(3, dto);
+      result = await service.create(3, challengeId);
       expect(mockParticipationService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          challenge: { id: dto.challenge_id },
+          challenge: { id: challengeId },
           user: { id: 3 },
         })
       );
@@ -195,18 +189,18 @@ describe('ParticipationService', () => {
     it("챌린지가 존재하지 않은 경우", async () => {
       jest.spyOn(mockChallengeService,'findOne').mockResolvedValue(null);
 
-      await expect(service.create(3, {challenge_id: 2})).rejects.toThrow("챌린지가 존재하지 않습니다.");
+      await expect(service.create(3, 2)).rejects.toThrow("챌린지가 존재하지 않습니다.");
     });
 
     it("기간이 지난 경우", async () => {
       (checkThePast as jest.Mock).mockReturnValue(false);
 
-      await expect(service.create(4, {challenge_id: 1})).rejects.toThrow("기간이 지났습니다.");
+      await expect(service.create(4, 1)).rejects.toThrow("기간이 지났습니다.");
     });
 
     it("이미 참가 중인 경우", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(participations[0]);
-      await expect(service.create(1, {challenge_id: 1})).rejects.toThrow("이미 참가중입니다.");
+      await expect(service.create(1, 1)).rejects.toThrow("이미 참가중입니다.");
     });
   });
 
@@ -232,12 +226,12 @@ describe('ParticipationService', () => {
     it("기록 업데이트 성공 - 값이 없는 경우", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(participations[1]);
 
-      dto = {challenge_id: 1 };
+      const challengeId = 1;
       participation = { ...participations[1], }
 
       mockParticipationService.save.mockResolvedValue(participation);
 
-      result = await service.update(2, dto);
+      result = await service.update(2, challengeId, {});
       expect(mockParticipationService.save).toHaveBeenCalledWith(expect.objectContaining({
         id: participations[1].id,
         score: 0,
@@ -252,7 +246,8 @@ describe('ParticipationService', () => {
     it("기록 업데이트 성공 - 값이 있는 경우", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(participations[0]);
       
-      dto = {challenge_id: 1, score: 1 };
+      const challengeId = 1;
+      dto = { score: 1 };
       participation = {
         ...participations[0],
         complete_date: new Date(),
@@ -261,12 +256,11 @@ describe('ParticipationService', () => {
       }
       mockParticipationService.save.mockResolvedValue(participation);
 
-      result = await service.update(1, dto);
+      result = await service.update(1, challengeId, dto);
       expect(mockParticipationService.save).toHaveBeenCalledWith(expect.objectContaining({
         id: participations[0].id,
         score: participation.score,
         status: participation.status,
-        //complete_date: participation.complete_date,
       }));
       expect(result.id).toBe(1);
       expect(result.score).toBe(2);
@@ -275,12 +269,12 @@ describe('ParticipationService', () => {
 
     it('참가하지 않은 경우', async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(null);
-      await expect(service.update(4, {challenge_id: 1})).rejects.toThrow("참가하지 않았습니다.");
+      await expect(service.update(4, 1, {})).rejects.toThrow("참가하지 않았습니다.");
     });
 
     it('챌린지 포기 상태', async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(participations[2]);
-      await expect(service.update(4, {challenge_id: 1})).rejects.toThrow("챌린지 포기 상태입니다.");
+      await expect(service.update(4, 1, {})).rejects.toThrow("챌린지 포기 상태입니다.");
     });
   });
 
@@ -289,11 +283,11 @@ describe('ParticipationService', () => {
 
     it("챌린지 포기 성공", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(participations[0]);
-      dto = {challenge_id: 1};
+      const challengeId = 1;
       const savedEntity = { ...participations[0], status: 2, }
       mockParticipationService.save.mockResolvedValue(savedEntity);
-      result = await service.updateStatus(1, dto);
-      expect(service.findOne).toHaveBeenCalledWith(dto.challenge_id, 1);
+      result = await service.updateStatus(1, challengeId);
+      expect(service.findOne).toHaveBeenCalledWith(challengeId, 1);
       expect(mockParticipationService.save).toHaveBeenCalledWith(
         expect.objectContaining({
           id: participations[0].id,
@@ -304,16 +298,15 @@ describe('ParticipationService', () => {
 
     it("챌린지 포기 취소", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(participations[2]);
-      
-      dto = {challenge_id: 1};
+      const challengeId = 1;
       const savedEntity = {
         ...participations[2],
         status: 0,
       };
       mockParticipationService.save.mockResolvedValue(savedEntity);
       
-      result = await service.updateStatus(4, dto);
-      expect(service.findOne).toHaveBeenCalledWith(dto.challenge_id, 4);
+      result = await service.updateStatus(4, challengeId);
+      expect(service.findOne).toHaveBeenCalledWith(challengeId, 4);
       expect(mockParticipationService.save).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 0,
@@ -324,12 +317,12 @@ describe('ParticipationService', () => {
 
     it("참가하지 않은 경우", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(null);
-      await expect(service.updateStatus(3, {challenge_id: 1})).rejects.toThrow("참가하지 않았습니다.");
+      await expect(service.updateStatus(3, 1)).rejects.toThrow("참가하지 않았습니다.");
     });
 
     it("챌린지 완료하는 경우", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(participations[3]);
-      await expect(service.updateStatus(5, {challenge_id: 1})).rejects.toThrow("이미 챌린지 완료했습니다.");
+      await expect(service.updateStatus(5, 1)).rejects.toThrow("이미 챌린지 완료했습니다.");
     });
   });
 

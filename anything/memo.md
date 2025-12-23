@@ -885,6 +885,40 @@ Challenge
     - challenge.title이 unique로 설정되어 있어 위반
   - findOneById(): 챌린지 상세 조회 할때, ResponseChallengeDTO 객체로 리턴되도록 함수 하나 더 추가 
     - 기존의 findOne()으로 하려고 했으나, 수정/삭제할때, 이 값을 참조하여 작성자와 똑같은지에 유효성 검사를 하기 때문에 따로 빼서 처리
+Participation
+  - Challenge처럼 Param, Query, findOne() 처리 동일
+  - 참가/수정/포기 같은 경우, ChallengeID가 필수이므로, DTO > Param으로 변경
+    - ChallengeID & UserID로 챌린지 존재, 참가 여부 확인
+    - UpdateDTO는 IsOptional()로 변경이 되어 필수값 체크하기 더 까다로움
+  - 챌린지 FK 오타로 마이그레이션 진행(칼럼명 수정)
+  - URI 경로 재수정 및 위치 변경
+    - @Patch(":challengeId"), @Patch("giveup/:challengeId") 이런식으로 경로를 지정하니, `/participation/challenge/giveup/` 호출했을 때, 404 에러 대신 400 에러 처리
+    - 메소드 Patch > Get으로 변경
+Feed
+  - Challenge처럼 Param, Query, findOne(), findOneById() 처리 동일
+  - URI 경로 재수정
+    - @Get("challenge/:challengeId) > @Get("challenge/:challengeId/feeds") 변경
+    - `/feed/challenge/`로 테스트했을 때, 404 에러 대신 400 에러 처리
+  - Multer 예외 상황 필터 추가(용량, 파일 형식, 개수)
+    - 기존에는 예외처리르 안해서 500 에러 발생 > 400 에러로 변경
+    - 해당되는 상황에만 리턴하고 나머지는 그대로 예외 상황 전달
+    - multipart/form인 데이터를 테스트할 때는, 아래의 소스처럼 진행 
+      ```typescript
+        request(app.getHttpServer())
+          .post(baseUrl)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .field('challenge_id', challengeId.toString())
+          .field('title', '테스트')
+          .field('content', '테스트')
+          .attach(
+            'images',
+            Buffer.from('test'),
+            { filename: 'test.png', contentType: 'image/png' }
+          )
+          .expect(201)
+      ```
+
+
 
   
   
