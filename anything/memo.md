@@ -920,6 +920,50 @@ Feed
           .expect(201)
       ```
 
+githubactions
+- github에세 제공하는 CI/CD 툴
+- `.github/workflows` 내에 yaml 파일을 작성하여 워크플로 작성
+- job은 병렬적으로 진행(이전 job에 영향을 안받기 위해)
+- job 안에 단계별 실행(step에서 실패하면, ci 중지)
+- 참조: [공식 문서](https://docs.github.com/ko/actions/how-tos/write-workflows/use-workflow-templates)
+- [github-script](https://github.com/actions/github-script)은 깃허브 API를 사용할 수 있도록 제공하는 스크립트
+  - 참조: https://eunjin3786.tistory.com/194
+```yml
+name: githubactions 테스트
+
+# 이벤트 발생(push, pull_request 등)
+on:
+  push:
+    branch:
+      - main
+
+# 이벤트 실행할 작업
+jobs:
+  job1:
+    # OS
+    runs-on: ubuntu-latest
+    # 단계
+    steps:
+      # 깃허브 코드를 러너에 복사
+      - name: Checkout
+        uses: actions/checkout@v4
+      # 노드 설치
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Package
+        run: npm ci
+
+      - name: Test
+        run: npm test
+      
+      - name: Build
+        run: npm run build
+```
+
+
 
 
   

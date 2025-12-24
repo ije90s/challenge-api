@@ -115,7 +115,7 @@ describe('ChallengeService', () => {
       result = await service.findOne(1);
       expect(mockChallengeRepository.findOne).toHaveBeenCalledWith({
         where: { id: 1 },
-        //relations: ["author"]
+        relations: ["author"]
       });
       expect(result).toBeTruthy();
     });
