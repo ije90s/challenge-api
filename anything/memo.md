@@ -885,6 +885,7 @@ Challenge
     - challenge.title이 unique로 설정되어 있어 위반
   - findOneById(): 챌린지 상세 조회 할때, ResponseChallengeDTO 객체로 리턴되도록 함수 하나 더 추가 
     - 기존의 findOne()으로 하려고 했으나, 수정/삭제할때, 이 값을 참조하여 작성자와 똑같은지에 유효성 검사를 하기 때문에 따로 빼서 처리
+
 Participation
   - Challenge처럼 Param, Query, findOne() 처리 동일
   - 참가/수정/포기 같은 경우, ChallengeID가 필수이므로, DTO > Param으로 변경
@@ -894,6 +895,7 @@ Participation
   - URI 경로 재수정 및 위치 변경
     - @Patch(":challengeId"), @Patch("giveup/:challengeId") 이런식으로 경로를 지정하니, `/participation/challenge/giveup/` 호출했을 때, 404 에러 대신 400 에러 처리
     - 메소드 Patch > Get으로 변경
+    
 Feed
   - Challenge처럼 Param, Query, findOne(), findOneById() 처리 동일
   - URI 경로 재수정
