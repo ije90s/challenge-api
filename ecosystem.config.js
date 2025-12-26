@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'challenge-api',
-      script: 'dist/main.js',
+      script: 'dist/src/main.js',
 
       instances: 1,          // cluster 모드
       exec_mode: 'cluster',
