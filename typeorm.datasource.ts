@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 export default new DataSource({
   type: 'mysql',
   host: process.env.DB_HOST!,
@@ -8,6 +10,14 @@ export default new DataSource({
   username: process.env.DB_USER!,
   password: process.env.DB_PASS!,
   database: process.env.DB_NAME!,
-  entities: [__dirname + '/src/**/entity/*.entity.{ts,js}'],
-  migrations: [__dirname + '/src/migrations/*.{ts,js}'],
+  entities: [
+    isProd
+      ? __dirname + '/**/entity/*.entity.js'
+      : __dirname + '/**/entity/*.entity.ts',
+  ],
+  migrations: [
+    isProd
+      ? __dirname + '/migrations/*.js'
+      : __dirname + '/migrations/*.ts',
+  ],
 });
