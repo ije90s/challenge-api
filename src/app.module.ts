@@ -12,10 +12,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: `.env.${process.env.NODE_ENV}`,
-    }),
+    ConfigModule.forRoot({ isGlobal: true, }),
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: process.env.DB_HOST!,
