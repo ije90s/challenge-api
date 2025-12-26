@@ -58,7 +58,7 @@ jobs:
               chmod 600 .env
 
               npm ci --only=production
-              npm run migration:run
+              npx typeorm migration:run -d ./dist/data-source.js
 
               pm2 startOrReload ecosystem.config.js --env production
 
