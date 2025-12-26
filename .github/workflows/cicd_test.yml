@@ -57,7 +57,7 @@ jobs:
               cp ../.env.prod ./.env
               chmod 600 .env
 
-              npm i
+              npm ci --only=production
               npm run migration:run
 
               pm2 startOrReload ecosystem.config.js --env production
