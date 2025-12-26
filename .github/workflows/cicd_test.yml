@@ -28,7 +28,7 @@ jobs:
         run: npm run build
 
       - name: Zip
-        run: tar -czf app.tar.gz dist package.json package-lock.json ecosystem.config.js typeorm.datasource.ts
+        run: tar -czf app.tar.gz dist package.json package-lock.json ecosystem.config.js
 
       - name: Copy files to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -57,7 +57,7 @@ jobs:
               cp ../.env.prod ./.env
               chmod 600 .env
 
-              npm ci --only=production
+              npm i
               npm run migration:run
 
               pm2 startOrReload ecosystem.config.js --env production
