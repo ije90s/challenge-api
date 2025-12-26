@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
+import { join } from 'path';
 
 const isProd = process.env.NODE_ENV === 'prod';
 
@@ -12,12 +13,12 @@ export default new DataSource({
   database: process.env.DB_NAME!,
   entities: [
     isProd
-      ? __dirname + '/**/entity/*.entity.js'
-      : __dirname + '/**/entity/*.entity.ts',
+      ? join(__dirname, 'src/**/entity/*.entity.js')   
+      : join(__dirname, 'src/**/entity/*.entity.ts'),
   ],
   migrations: [
     isProd
-      ? __dirname + '/migrations/*.js'
-      : __dirname + '/migrations/*.ts',
+      ? join(__dirname, 'src/migrations/*.js')
+      : join(__dirname, 'src/migrations/*.ts'),
   ],
 });

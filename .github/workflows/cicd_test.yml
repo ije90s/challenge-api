@@ -27,8 +27,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Set current date
+        run: echo "DEPLOY_FILENAME=app_$(date +'%Y%m%d_%H%M%S').tar.gz" >> $GITHUB_ENV
+
       - name: Zip
-        run: tar -czf app.tar.gz dist package.json package-lock.json ecosystem.config.js
+        run: tar -czf ${{ env.DEPLOY_FILENAME }} dist package.json package-lock.json ecosystem.config.js
 
       - name: Copy files to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -36,7 +39,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
-          source: "app.tar.gz"
+          source: "${{ env.DEPLOY_FILENAME }}"
           target: "/home/ubuntu/temp"
 
       - name: SSH to EC2
@@ -46,12 +49,13 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script_stop: true
+          envs: DEPLOY_FILENAME
           script: |
               cd /home/ubuntu
               mkdir -p app
 
               rm -rf app/*
-              tar -xzf /home/ubuntu/temp/app.tar.gz -C app
+              tar -xzf /home/ubuntu/temp/$DEPLOY_FILENAME -C app
 
               cd app
               cp ../.env.prod ./.env
