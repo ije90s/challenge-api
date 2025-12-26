@@ -12,7 +12,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: `.env.${process.env.NODE_ENV}`,
+    }),
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: process.env.DB_HOST!,
@@ -22,8 +25,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       database: process.env.DB_NAME!,
       entities: [__dirname + '/**/entity/*.entity.{ts,js}'],
       synchronize: false,
-      logging: process.env.MODE! === 'dev' ? true : ['warn', 'error'],
-      logger: process.env.MODE! === 'dev' ? 'advanced-console' : 'simple-console',
+      logging: ['warn', 'error'],
+      logger: 'simple-console',
     }), 
     UserModule, AuthModule, ChallengeModule, ParticipationModule, FeedModule],
   controllers: [AppController],
