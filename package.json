@@ -20,7 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "typeorm": "node -r ts-node/register ./node_modules/typeorm/cli.js",
     "typeorm:d": "node -r ts-node/register ./node_modules/typeorm/cli.js -d typeorm.datasource.ts",
-    "migration:run": "node ./node_modules/typeorm/cli.js -d dist/typeorm.datasource.js migration:run"
+    "migration:run": "typeorm migration:run -d dist/typeorm.datasource.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

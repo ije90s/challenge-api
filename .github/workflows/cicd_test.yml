@@ -1,4 +1,4 @@
-name: CI/CD Test
+name: CI/CD Test With CodeDeploy
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Package
-        run: npm ci
+        run: npm ci --omit=dev
 
       - name: Test
         run: npm test
@@ -27,50 +27,32 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Set current date
-        run: echo "DEPLOY_FILENAME=app_$(date +'%Y%m%d_%H%M%S').tar.gz" >> $GITHUB_ENV
+      - name: $GITHUB_SHA Confirm
+        run: echo $GITHUB_SHA
 
       - name: Zip
-        run: tar -czf ${{ env.DEPLOY_FILENAME }} dist package.json package-lock.json ecosystem.config.js
+        run: tar -czf $GITHUB_SHA.tar.gz appspec.yml scripts dist package.json package-lock.json ecosystem.config.js
 
-      - name: Copy files to EC2
-        uses: appleboy/scp-action@v0.1.7
+      - name: AWS credentials 설정
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          source: "${{ env.DEPLOY_FILENAME }}"
-          target: "/home/ubuntu/temp"
+          aws-region: ap-northeast-2
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: SSH to EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          script_stop: true
-          envs: DEPLOY_FILENAME
-          script: |
-              cd /home/ubuntu
-              mkdir -p app
+      - name: S3 Upload
+        run: aws s3 cp --region ap-northeast-2 ./$GITHUB_SHA.tar.gz s3://challenge-api-ci-cd/$GITHUB_SHA.tar.gz
 
-              rm -rf app/*
-              tar -xzf /home/ubuntu/temp/$DEPLOY_FILENAME -C app
+      - name: Code Deploy
+        run: |
+          aws deploy create-deployment \
+            --application-name challenge-api \
+            --deployment-config-name CodeDeployDefault.AllAtOnce \
+            --deployment-group-name Production \
+            --s3-location bucket=challenge-api-ci-cd,bundleType=tgz,key=$GITHUB_SHA.tar.gz
 
-              cd app
-              cp ../.env.prod ./.env
-              chmod 600 .env
 
-              npm ci --only=production
+  
 
-              echo "--- 현재 위치 확인 ---"
-              pwd
-            
-              echo "--- 마이그레이션 파일 존재 확인 ---"
-              ls -l dist/src/migrations || echo "파일 없음!"
-
-              echo "--- 마이그레이션 실행 ---"
-              npx typeorm migration:run -d ./dist/typeorm.datasource.js
-
-              pm2 startOrReload ecosystem.config.js --env production
+      
 
