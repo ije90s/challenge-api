@@ -19,7 +19,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Package
-        run: npm ci --omit=dev
+        run: npm ci
 
       - name: Test
         run: npm test
