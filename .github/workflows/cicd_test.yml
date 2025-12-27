@@ -27,9 +27,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: $GITHUB_SHA Confirm
-        run: echo $GITHUB_SHA
-
       - name: Zip
         run: tar -czf $GITHUB_SHA.tar.gz appspec.yml scripts dist package.json package-lock.json ecosystem.config.js
 
