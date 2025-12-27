@@ -11,4 +11,4 @@ fi
 cp /home/ubuntu/.env.prod ./.env
 chmod 600 .env
 
-npm ci --omit=dev
+npm ci
