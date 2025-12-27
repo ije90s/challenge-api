@@ -15,6 +15,7 @@ echo "--------------- .env 파일 생성 시작 -----------------"
 # 파라미터 값 가져오기
 PARAMS=$(aws ssm get-parameters-by-path \
   --path "$PARAM_PATH" \
+  --region ap-northeast-2 \
   --with-decryption \
   --query "Parameters[*].[Name,Value]" \
   --output text)
