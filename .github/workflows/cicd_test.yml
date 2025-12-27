@@ -27,16 +27,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: .env 확인
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          script_stop: true
-          scripts: |
-            test -f /home/ubuntu/.env.prod || exit 1
-
       - name: Zip
         run: tar -czf $GITHUB_SHA.tar.gz appspec.yml scripts dist package.json package-lock.json ecosystem.config.js
 
