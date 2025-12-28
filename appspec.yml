@@ -22,6 +22,11 @@ hooks:
     - location: scripts/after_install.sh
       timeout: 300
       runas: ubuntu
+
+  ApplicationStop:
+    - location: scripts/stop.sh
+      timeout: 300
+      runas: ubuntu
       
   ApplicationStart:
     - location: scripts/start.sh
@@ -30,5 +35,5 @@ hooks:
   
   ValidateService:
     - location: scripts/health_check.sh
-      timeout: 300
+      timeout: 20
       runas: ubuntu
