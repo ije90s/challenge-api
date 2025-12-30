@@ -38,7 +38,6 @@
     - 파일명 오타
 - Error: Credentials could not be loaded, please check your action inputs: Could not load credentials from any providers
     - 시크릿 키 오타
-- Error: creational 값이 있으면, ec2와 충돌나 parameter store에 있는 값을 못 가져옴 
 - Error: An error occurred (AccessDeniedException) when calling the GetParametersByPath operation: User: arn:aws:iam::xxxxxx:user/gitactions-user is not authorized to perform: ssm:GetParametersByPath on resource: arn:aws:ssm:ap-northeast-2:xxxxxx:parameter/challenge-api/prod because no identity-based policy allows the ssm:GetParametersByPath action
     - EC2에 ssmManager Access 접근이 되어져 있다면, 서버 내에서 한번 더 사용자에 대한 configure를 등록하면, 충돌 발생 > configure 명시적으로 제거 
     ```shell
@@ -48,7 +47,7 @@
     ```
 - Error: You must specify a region. You can also configure your region by running "aws configure".
     - 지역 명시
-- Error: An error occurred (AccessDeniedException) when calling the GetParametersByPath operation: User: arn:aws:sts::xxxxxx:assumed-role/code-deploy-ec2-role/i-069cab1b827924414 is not authorized to perform: ssm:GetParametersByPath on resource: arn:aws:ssm:ap-northeast-2:xxxxxx:parameter/challenge-api/prod because no identity-based policy allows the ssm:GetParametersByPath action
+- Error: An error occurred (AccessDeniedException) when calling the GetParametersByPath operation: User: arn:aws:sts::xxxxxx:assumed-role/code-deploy-ec2-role/i-xxxxxx is not authorized to perform: ssm:GetParametersByPath on resource: arn:aws:ssm:ap-northeast-2:xxxxxx:parameter/challenge-api/prod because no identity-based policy allows the ssm:GetParametersByPath action
     - EC2에 권한 추가가 잘되지 않아, ssmManagerReadOnly Access로 변경
 - Error: The `npm ci` command can only install with an existing package-lock.json or npm error npm-shrinkwrap.json with lockfileVersion >= 1. Run an install with npm@5 or npm error later to generate a package-lock.json file, then try again.
     - npm 실행 위치 오류

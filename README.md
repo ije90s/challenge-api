@@ -3,9 +3,8 @@
 ### 개요
 - Challenge API는 챌린지 기능을 관리하는 NestJS 기반 REST API입니다.
 - 단일 EC2 환경에서 **API 개발부터 CI/CD 파이프라인 구성, 서버 배포까지의 전체 흐름을 경험**하는 것을 목표로 개발했습니다.
-- CI/CD 자동화, 마이그레이션 실행 전략, 헬스 체크 기반 배포 검증 등  
-  **운영 관점에서의 의사결정과 구조 설계**에 중점을 두었습니다.
-- 현재 서버는 종료된 상태입니다. (2025.12.30 기준)
+- CI/CD 자동화, 마이그레이션 실행 전략, 헬스 체크 기반 배포 검증 등 **운영 관점에서의 의사결정과 구조 설계**에 중점을 두었습니다.
+- 현재 서버는 종료되었습니다. (2025.12.30 기준)
 
 ### 기술 스택
 | 구분 | 기술 |
@@ -20,7 +19,6 @@
 | CI/CD | GitHub Actions, CodeDeploy |
 | Process Manager | PM2 |
 | API | RESTful API |
-
 
 ### 시스템 구성
 - EC2 단일 인스턴스 환경
@@ -58,6 +56,29 @@ GitHub Actions
 - 데이터베이스
   - TypeORM Entity 구성
   - 마이그레이션 파일 기반 스키마 관리
+![ERP](/anything/images/db_erp.png)
+- API
+
+  | endpoint | method | 설명 |
+  | --- | --- | --- |
+  | /user | POST | 가입 |
+  | /user/login | POST | 로그인 ⇒ auth 모듈에서 인증 처리(JWT, Passoport) |
+  | /user/me | GET | 내 정보 조회 |
+  | /challenge | POST | 챌린지 생성 |
+  | /challenge/:challengeId | PATCH | 챌린지 수정 |
+  | /challenge/:challengeId | DELETE | 챌린지 삭제 |
+  | /challenge/:challengeId | GET | 챌린지 상세 조회 |
+  | /challenge | GET | 챌린지 리스트 조회 |
+  | /participation/challenge/:challengeId | POST | 챌린지 참가 |
+  | /participation/challenge/:challengeId/giveup | GET | 챌린지 포기 |
+  | /participation/challenge/:challengeId | PATCH | 챌린지 기록 업데이트 |
+  | /participation/challenge/:challengeId/rank | GET | 챌린지 랭킹 조회 |
+  | /participation/challenge/mine | GET | 내 챌린지 조회 |
+  | /feed/challenge/:challengeId/feeds | GET | 피드 조회 |
+  | /feed/:feedId | GET | 피드 상세 조회 |
+  | /feed| POST | 피드 생성 |
+  | /feed/:feedId | PATCH | 피드 수정 |
+  | /feed/:feedId | DELETE | 피드 삭제 |
 - 테스트
   - Jest 기반 서비스 레이어 유닛 테스트
   - E2E 테스트를 통한 API 흐름 검증
@@ -71,6 +92,8 @@ GitHub Actions
   - 멀티 인스턴스 환경에서 필요한 중복 방지 로직은 범위에서 제외
 - Prometheus & Grafana 미적용
   - 단일 EC2 환경에서는 CloudWatch로 기본적인 서버 상태 확인이 가능하다고 판단
+- 스웨거 API 문서화
+  - 개인 프로젝트라서 스웨거를 사용하지 않고, 리드미에 간략하게 요약
 
 ### 회고
 - 실무에서 경험은 있었지만 개념적으로 불명확했던 부분들을 공식 문서와 직접 실습을 통해 다시 정리하는 계기가 되었다.
