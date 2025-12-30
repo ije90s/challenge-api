@@ -1,98 +1,77 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+## Challenge API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+### 개요
+- Challenge API는 챌린지 기능을 관리하는 NestJS 기반 REST API입니다.
+- 단일 EC2 환경에서 **API 개발부터 CI/CD 파이프라인 구성, 서버 배포까지의 전체 흐름을 경험**하는 것을 목표로 개발했습니다.
+- CI/CD 자동화, 마이그레이션 실행 전략, 헬스 체크 기반 배포 검증 등  
+  **운영 관점에서의 의사결정과 구조 설계**에 중점을 두었습니다.
+- 현재 서버는 종료된 상태입니다. (2025.12.30 기준)
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+### 기술 스택
+| 구분 | 기술 |
+| --- | --- |
+| Programming Language | Node.js 20.15.1 |
+| Framework | NestJS 11.0.6 |
+| Database | MariaDB 10.6 |
+| ORM | TypeORM |
+| Testing | Jest |
+| Version Control | Git |
+| Cloud | AWS (EC2, RDS, S3, CodeDeploy, Parameter Store) |
+| CI/CD | GitHub Actions, CodeDeploy |
+| Process Manager | PM2 |
+| API | RESTful API |
 
-## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+### 시스템 구성
+- EC2 단일 인스턴스 환경
+- RDS(MariaDB) 사용
+- GitHub Actions → S3 → CodeDeploy 기반 배포
 
-## Project setup
+### CI/CD 파이프라인
+- **배포 방식**: All-at-Once
+- **배포 검증**: `/health` 엔드포인트 기반 상태 확인
+- 개인 프로젝트 특성상 단일 서버 환경으로 운영하여 **마이그레이션은 CD 단계에서 실행**하도록 구성
+- SCP, CodeDeploy 두가지 방식으로 연습했으며, 이에 대한 내용은 [scp](/anything/cicd_scp.md), [codeDeploy](/anything/cicd_codedeploy.md)에 기재
 
-```bash
-$ npm install
+```text
+GitHub Actions
+ ├─ Test, Build
+ ├─ S3에 빌드 파일 업로드
+ └─ CodeDeploy 실행
+    ├─ ApplicationStop
+    │   └─ PM2 프로세스 중지
+    ├─ BeforeInstall
+    │   └─ AWS Parameter Store 기반 환경 변수 생성
+    ├─ AfterInstall
+    │   ├─ 패키지 설치
+    │   └─ TypeORM 마이그레이션 실행
+    ├─ ApplicationStart
+    │   └─ PM2 startOrReload
+    └─ ValidateService
+        └─ /health 엔드포인트 호출
 ```
 
-## Compile and run the project
+### 주요 구현 기능
+- 인증
+  - JWT + Passport 기반 인증 처리
+  - Access Token 기반 API 보호
+- 데이터베이스
+  - TypeORM Entity 구성
+  - 마이그레이션 파일 기반 스키마 관리
+- 테스트
+  - Jest 기반 서비스 레이어 유닛 테스트
+  - E2E 테스트를 통한 API 흐름 검증
+- Health Check
+  - /health 엔드포인트 제공
+  - 배포 성공/실패 판단 기준으로 활용
 
-```bash
-# development
-$ npm run start
+### 의도적 선택 및 제한 사항
+- 마이그레이션 중복 방지 미구현
+  - 단일 서버 환경에서 운영하므로, CD 단계에서 1회 실행하는 방식으로 관리
+  - 멀티 인스턴스 환경에서 필요한 중복 방지 로직은 범위에서 제외
+- Prometheus & Grafana 미적용
+  - 단일 EC2 환경에서는 CloudWatch로 기본적인 서버 상태 확인이 가능하다고 판단
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### 회고
+- 실무에서 경험은 있었지만 개념적으로 불명확했던 부분들을 공식 문서와 직접 실습을 통해 다시 정리하는 계기가 되었다.
+- 생성형 AI를 보조 수단으로 활용하면서, OOP, TypeScript, Shell Script와 같은 기본 개념에 대한 이해가 있어야 AI의 결과를 판단하고 설계에 반영할 수 있다는 점을 체감했다.
