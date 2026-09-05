@@ -4,6 +4,7 @@ import { ChallengeService } from './challenge.service';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
 import { User } from '../common/user.decorator';
 import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
+import { RequestUser } from '../common/types/request-user.type';
 import { ResponseChallengeDto } from './dto/response-challenge.dto';
 import { ResponsePagingDto } from '../common/dto/response-paging.dto';
 import { RequestQueryDTO } from '../common/dto/request-query.dto';
@@ -20,17 +21,17 @@ export class ChallengeController {
     }
 
     @Post()
-    async create(@User() user, @Body() dto: CreateChallengeDto): Promise<ResponseChallengeDto>{
+    async create(@User() user: RequestUser, @Body() dto: CreateChallengeDto): Promise<ResponseChallengeDto>{
         return await this.challengeService.create(user.id, dto);
     }
 
     @Patch(":challengeId")
-    async modify(@Param("challengeId", ParseIntPipe) challengeId: number, @User() user, @Body() dto: UpdateChallengeDto): Promise<ResponseChallengeDto>{
+    async modify(@Param("challengeId", ParseIntPipe) challengeId: number, @User() user: RequestUser, @Body() dto: UpdateChallengeDto): Promise<ResponseChallengeDto>{
         return await this.challengeService.update(challengeId, user.id, dto);
     }
 
     @Delete(":challengeId")
-    async delete(@Param("challengeId", ParseIntPipe) challengeId: number, @User() user): Promise<void>{
+    async delete(@Param("challengeId", ParseIntPipe) challengeId: number, @User() user: RequestUser): Promise<void>{
         return await this.challengeService.delete(challengeId, user.id);
     }
 

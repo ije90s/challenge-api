@@ -5,6 +5,7 @@ import { AuthService } from '../auth/auth.service';
 import { LoginUserDto } from '../auth/dto/login-user.dto';
 import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
 import { User } from '../common/user.decorator';
+import { RequestUser } from '../common/types/request-user.type';
 import { ResponseUserDto } from './dto/response-user.dto';
 
 @Controller('user')
@@ -22,7 +23,7 @@ export class UserController {
 
     @UseGuards(JwtAuthGuard)
     @Get("me")
-    async fineOne(@User() user): Promise<ResponseUserDto | null>{
+    async fineOne(@User() user: RequestUser): Promise<ResponseUserDto | null>{
         return await this.userService.findOneById(user.id);
     }
 

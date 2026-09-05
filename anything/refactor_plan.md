@@ -137,9 +137,9 @@
 ### Phase 1 — 타입/Entity/예외처리/테스트 기반 다지기 (최우선)
 
 **1-1. 타입 강화**
-- [ ] `tsconfig.json`: `noImplicitAny: true`로 전환
-- [ ] 전환 후 발생하는 컴파일 에러를 파일별로 정리 → 세부 작업 리스트화
-- [ ] `common/types` 신설, `RequestUser` 타입 정의(`{ id: number; email: string }`) → `@User()` 데코레이터 및 전 컨트롤러에 적용
+- [x] `tsconfig.json`: `noImplicitAny: true`로 전환 (2026-09-05)
+- [x] 전환 후 발생하는 컴파일 에러를 파일별로 정리 → 세부 작업 리스트화 (2026-09-05, 상세는 `anything/worklog_2026-09-05.md` 참고)
+- [x] `common/types` 신설, `RequestUser` 타입 정의 → `@User()` 데코레이터 및 전 컨트롤러에 적용 (2026-09-05, 실제 사용처 기준으로 `{ id: number }`만 정의 — `email`은 어디서도 쓰이지 않아 제외)
 - [ ] `JwtPayload` 타입 정의(`jwt.strategy.ts`) — `sub` 타입/실값 불일치 수정
 
 **1-2. Entity / DB 접근**
