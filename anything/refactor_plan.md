@@ -140,7 +140,7 @@
 - [x] `tsconfig.json`: `noImplicitAny: true`로 전환 (2026-09-05)
 - [x] 전환 후 발생하는 컴파일 에러를 파일별로 정리 → 세부 작업 리스트화 (2026-09-05, 상세는 `anything/worklog_2026-09-05.md` 참고)
 - [x] `common/types` 신설, `RequestUser` 타입 정의 → `@User()` 데코레이터 및 전 컨트롤러에 적용 (2026-09-05, 실제 사용처 기준으로 `{ id: number }`만 정의 — `email`은 어디서도 쓰이지 않아 제외)
-- [ ] `JwtPayload` 타입 정의(`jwt.strategy.ts`) — `sub` 타입/실값 불일치 수정
+- [x] `JwtPayload` 타입 정의(`jwt.strategy.ts`) — `sub` 타입/실값 불일치 수정 (2026-09-06, `common/types/jwt-payload.type.ts` 신설, `sub`는 JWT 스펙(RFC 7519, StringOrURI) 준수해 string으로 확정하고 `auth.service.ts`에서 `String(user.id)`로 캐스팅. `sub`는 어디서도 읽히지 않는 값이라 `RequestUser`/`request.user`에는 영향 없음 — 그건 `payload.email`로 재조회한 User 엔티티에서 옴)
 
 **1-2. Entity / DB 접근**
 - [ ] `challenge.author`, `feed.user`, `participation.user`/`challenge` 접근부 null 가드 추가

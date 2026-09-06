@@ -3,6 +3,7 @@ import { UserService } from '../user/user.service';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { JwtPayload } from '../common/types/jwt-payload.type';
 
 @Injectable()
 export class AuthService {
@@ -24,7 +25,7 @@ export class AuthService {
             throw new UnauthorizedException("비밀번호가 잘못되었습니다.");
         }
 
-        const payload = { email: user.email, sub: user.id };
+        const payload: JwtPayload = { email: user.email, sub: String(user.id) };
 
         return { access_token: this.jwtService.sign(payload) };
     }
