@@ -154,7 +154,7 @@
 **1-3. 예외 처리 / Validation**
 - [ ] `sucess` → `success` 전역 통일 (`response.interceptor.ts`, `http.exception.filter.ts`, `multer.exception.filter.ts`, 관련 스펙/e2e assertion)
 - [ ] "중복" 계열 `UnauthorizedException` → `ConflictException` 재매핑 (challenge/feed 제목 중복, participation 중복 참가 등)
-- [ ] `JwtStrategy.validate()`의 `await` 누락 수정
+- [x] `JwtStrategy.validate()`의 `await` 누락 수정 (2026-09-06, `findOneByEmail` 앞에 `await` 추가 — 기존엔 Promise가 항상 truthy라 `if(!user)` 가드가 죽은 코드였음. 회귀 테스트는 미보강 상태로 남음, Phase 1-4에서 다룰 예정)
 - [ ] `MulterExceptionFilter` 이중 응답(응답 후 재throw) 로직 정리
 - [ ] `FeedService.update`의 이미지 유실 버그 수정 (`getFileArr(images) ?? feed.images`가 항상 배열 반환하는 문제)
 
