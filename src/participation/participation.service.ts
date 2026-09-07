@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { UpdateParticipationDto } from './dto/update-participation.dto';
 import { ChallengeService } from '../challenge/challenge.service';
 import { checkThePast } from '../common/util';
@@ -31,16 +31,16 @@ export class ParticipationService {
 
         const challenge = await this.challegneService.findOne(challengeId);
         if(!challenge){
-            throw new ForbiddenException("챌린지가 존재하지 않습니다.");
+            throw new NotFoundException("챌린지가 존재하지 않습니다.");
         }
 
         if(!checkThePast(challenge.end_date)){
-            throw new UnauthorizedException("기간이 지났습니다.");
+            throw new ConflictException("기간이 지났습니다.");
         }
 
         const participation = await this.findOne(challengeId, userId);
         if(participation){
-            throw new UnauthorizedException("이미 참가중입니다.");
+            throw new ConflictException("이미 참가중입니다.");
         }
 
         const newParticipation = this.participationRepository.create({ 
@@ -61,9 +61,9 @@ export class ParticipationService {
         }
 
         if(!checkThePast(challenge.end_date)){
-            throw new BadRequestException("기간이 지났습니다.");
+            throw new ConflictException("기간이 지났습니다.");
         }
-        
+
         const participation = await this.findOne(challengeId, userId);
         if(!participation){
             throw new ForbiddenException("참가하지 않았습니다.");

@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 import { UpdateChallengeDto } from './dto/update-challenge.dto';
 import { checkDate } from '../common/util';
@@ -59,12 +59,12 @@ export class ChallengeService {
         // 제목 중복 확인
         const challenge = await this.findByTitle(title);
         if(challenge){
-            throw new UnauthorizedException("중복된 제목입니다.");
+            throw new ConflictException("중복된 제목입니다.");
         }
 
         // 날짜 확인
         if(!checkDate(start_date, end_date)){
-            throw new UnauthorizedException("날짜 설정이 잘못되었습니다.");
+            throw new BadRequestException("날짜 설정이 잘못되었습니다.");
         }
 
         const newChallenge = this.challengeRepository.create({ ...dto, author: { id: userId } });
@@ -88,7 +88,7 @@ export class ChallengeService {
         if (dto.title && dto.title !== challenge.title) {
             const exists = await this.findByTitle(dto.title, challengeId);
             if (exists) {
-                throw new UnauthorizedException("중복된 제목입니다.");
+                throw new ConflictException("중복된 제목입니다.");
             }
         }
 
@@ -97,7 +97,7 @@ export class ChallengeService {
         const endDate = dto.end_date ?? challenge.end_date;
 
         if (!checkDate(startDate, endDate)) {
-            throw new UnauthorizedException("날짜 설정이 잘못되었습니다.");
+            throw new BadRequestException("날짜 설정이 잘못되었습니다.");
         }
 
         Object.assign(challenge, dto);

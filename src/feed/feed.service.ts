@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateFeedDto } from './dto/create-feed.dto';
 import { UpdateFeedDto } from './dto/update-feed.dto';
 import { ChallengeService } from '../challenge/challenge.service';
@@ -67,16 +67,16 @@ export class FeedService {
     async create(userId: number, dto: CreateFeedDto, images: Express.Multer.File[]): Promise<ResponseFeedDto>{
         const challenge = await this.challengeService.findOne(dto.challenge_id);
         if(!challenge){
-            throw new UnauthorizedException("챌린지가 없습니다.");
+            throw new NotFoundException("챌린지가 없습니다.");
         }
 
         if(!checkThePast(challenge.end_date)){
-            throw new UnauthorizedException("기간이 지났습니다.");
+            throw new ConflictException("기간이 지났습니다.");
         }
 
         const feed = await this.findByTitle(dto.title);
         if(feed){
-            throw new UnauthorizedException("중복된 제목입니다.");
+            throw new ConflictException("중복된 제목입니다.");
         }
         
         dto.images = this.getFileArr(images);
@@ -97,7 +97,7 @@ export class FeedService {
     async update(feedId: number, userId: number, dto: UpdateFeedDto, images: Express.Multer.File[]): Promise<ResponseFeedDto>{
         const feed = await this.findOne(feedId);
         if(!feed){
-            throw new UnauthorizedException("피드가 없습니다.");
+            throw new NotFoundException("피드가 없습니다.");
         }
 
         if(!feed.user || feed.user.id !== userId){
@@ -106,7 +106,7 @@ export class FeedService {
 
         const checkTitle = await this.findByTitle(dto.title, feedId);
         if (checkTitle) {
-            throw new UnauthorizedException("중복된 제목입니다.");
+            throw new ConflictException("중복된 제목입니다.");
         }
 
         // 기존 이미지는 삭제 > 새 이미지 업로드    
@@ -121,7 +121,7 @@ export class FeedService {
     async delete(feedId: number, userId: number): Promise<void>{
         const feed = await this.findOne(feedId);
         if(!feed){
-            throw new UnauthorizedException("피드가 없습니다.");
+            throw new NotFoundException("피드가 없습니다.");
         }
 
         if(!feed.user || feed.user.id !== userId){

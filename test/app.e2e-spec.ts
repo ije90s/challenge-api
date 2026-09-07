@@ -164,7 +164,7 @@ describe('AppController (e2e)', () => {
             start_date: "2025-12-01",
             end_date: "2025-12-31",
           })
-          .expect(401)
+          .expect(409)
           // .expect(201)
           // .expect(res => {
           //   expect(res.body.data.author_id).toBe(1)
@@ -307,7 +307,7 @@ describe('AppController (e2e)', () => {
         .send({
           challenge_id: challengeId,
         })
-        .expect(401)
+        .expect(409)
         // .expect(201)
         // .expect(res => {
         //   expect(res.body.data.id).toBe(1);
@@ -458,7 +458,7 @@ describe('AppController (e2e)', () => {
           Buffer.from('test'),
           { filename: 'test.png', contentType: 'image/png' }
         )
-        .expect(401)
+        .expect(409)
         //.expect(201)
         // .expect(res => {
         //   expect(res.body.data.title).toBe('테스트')
@@ -599,7 +599,7 @@ describe('AppController (e2e)', () => {
         return request(app.getHttpServer())
         .delete(`${baseUrl}/2`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .expect(401)
+        .expect(404)
       });
 
       it("FeedID가 없는 경우", () => {
