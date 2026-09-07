@@ -8,7 +8,7 @@ export class ResponseChallengeDto {
   readonly content: string;
   readonly start_date: Date;
   readonly end_date: Date;
-  readonly author_id: number;
+  readonly author_id: number | null;
 
   private constructor(entity: Challenge) {
     this.id = entity.id;
@@ -18,7 +18,7 @@ export class ResponseChallengeDto {
     this.content = entity.content;
     this.start_date = entity.start_date;
     this.end_date = entity.end_date;
-    this.author_id = entity.author.id;
+    this.author_id = entity.author?.id ?? null;
   }
 
   static from(challenge: Challenge): ResponseChallengeDto {

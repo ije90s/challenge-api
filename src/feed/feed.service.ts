@@ -100,10 +100,10 @@ export class FeedService {
             throw new UnauthorizedException("피드가 없습니다.");
         }
 
-        if(feed.user.id !== userId){
+        if(!feed.user || feed.user.id !== userId){
             throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
-        
+
         const checkTitle = await this.findByTitle(feedId, dto.title);
         if (checkTitle) {
             throw new UnauthorizedException("중복된 제목입니다.");
@@ -124,7 +124,7 @@ export class FeedService {
             throw new UnauthorizedException("피드가 없습니다.");
         }
 
-        if(feed.user.id !== userId){
+        if(!feed.user || feed.user.id !== userId){
             throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
 

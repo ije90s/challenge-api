@@ -5,16 +5,16 @@ export class ResponseFeedDto {
   readonly title: string;
   readonly content: string;
   readonly images?: string[] | null;
-  readonly user_id: number;
-  readonly challenge_id: number;
+  readonly user_id: number | null;
+  readonly challenge_id: number | null;
 
   private constructor(entity: Feed) {
     this.id = entity.id;
     this.title = entity.title;
     this.content = entity.content;
     this.images = entity.images;
-    this.user_id = entity.user.id;
-    this.challenge_id = entity.challenge.id;
+    this.user_id = entity.user?.id ?? null;
+    this.challenge_id = entity.challenge?.id ?? null;
   }
 
   static from(feed: Feed): ResponseFeedDto {

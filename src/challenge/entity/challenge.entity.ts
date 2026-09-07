@@ -24,7 +24,7 @@ export class Challenge extends CommonEntity {
 
     @ManyToOne(() => User, { onDelete: 'SET NULL' })
     @JoinColumn({ name: "user_id" })
-    author: User;
+    author: User | null;
 
     @DeleteDateColumn({type: 'timestamp', nullable: true, default: null })
     deleted_at?: Date | null;

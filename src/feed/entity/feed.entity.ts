@@ -17,11 +17,11 @@ export class Feed extends CommonEntity {
 
     @ManyToOne(() => User, { onDelete: 'SET NULL' })
     @JoinColumn({ name: "user_id" })
-    user: User;
+    user: User | null;
 
     @ManyToOne(() => Challenge, { onDelete: 'SET NULL' })
     @JoinColumn({ name: "challenge_id" })
-    challenge: Challenge;
+    challenge: Challenge | null;
 
     @DeleteDateColumn({type: 'timestamp', nullable: true, default: null })
     deleted_at?: Date | null;

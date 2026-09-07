@@ -80,7 +80,7 @@ export class ChallengeService {
             throw new NotFoundException("챌린지가 없습니다.");
         }
 
-        if (challenge.author.id !== userId) {
+        if (!challenge.author || challenge.author.id !== userId) {
             throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
 
@@ -113,7 +113,7 @@ export class ChallengeService {
             throw new NotFoundException("챌린지가 없습니다.");
         }
 
-        if(challenge.author.id !== userId){
+        if(!challenge.author || challenge.author.id !== userId){
             throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
 

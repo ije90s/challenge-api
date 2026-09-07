@@ -3,6 +3,7 @@
 > 작성일: 2026-09-04
 > 목적: NestJS 리팩토링 → MariaDB→Supabase PostgreSQL 마이그레이션 → 부하 테스트 → (Backend 정리 후) React+TS 프론트엔드 개발을 앞두고 진행한 전체 소스 분석 및 작업 계획.
 > 이 시점 기준 코드 변경 없음. 분석 및 TODO만 정리.
+> **2026-09-07 갱신**: PostgreSQL 마이그레이션(Phase 3)은 범위에서 제외. 리팩토링(Phase 1, 2) 이후 곧바로 부하 테스트(Phase 4)로 진행. 상세는 §2, Phase 3 항목 참고.
 
 ---
 
@@ -121,14 +122,16 @@
 ```
 [3 타입 설계 + 4 Entity/DB 접근 + 5 예외처리/Validation + 6 테스트]
   > 2 모듈구조
-  > 7 마이그레이션 주의사항
   > 8 성능(부하 테스트까지만)
   > 9 보안(최소화, 사실상 범위 제외)
 ```
 
+> **2026-09-07 변경**: MariaDB → Supabase PostgreSQL 마이그레이션(Phase 3, 원 계획 §6 "마이그레이션 시 주의점")은 이번 계획 범위에서 제외하기로 결정. 리팩토링(Phase 1, 2) 완료 후 마이그레이션 없이 곧바로 부하 테스트(Phase 4)로 진행한다. 아래 §1의 6번 항목과 원래의 Phase 3 TODO는 참고용으로 남겨두되 실행하지 않음.
+
 - 3/4/5/6을 묶어서 먼저 가는 이유: 서로 얽혀 있는 기초 작업 — 타입이 튼튼해야 Entity null 가드 같은 버그를 컴파일 타임에 잡고, 그게 예외처리 정합성과 테스트 보강의 전제가 됨.
 - 9번(보안)은 실제 배포가 아니라 로컬 진행이라 Rate Limiting/Refresh Token/helmet 등은 진행하지 않음.
 - 8번(성능)도 "부하 테스트로 병목 확인"까지가 목표이며, 이후 인프라 스케일링 대응은 범위 밖.
+- 7번(마이그레이션 주의사항)은 범위 제외로 실행하지 않음 — MariaDB 구조를 유지한 채 부하 테스트로 넘어감.
 
 ---
 
@@ -143,7 +146,7 @@
 - [x] `JwtPayload` 타입 정의(`jwt.strategy.ts`) — `sub` 타입/실값 불일치 수정 (2026-09-06, 상세는 `anything/worklog_2026-09-06.md` 참고)
 
 **1-2. Entity / DB 접근**
-- [ ] `challenge.author`, `feed.user`, `participation.user`/`challenge` 접근부 null 가드 추가
+- [x] `challenge.author`, `feed.user`, `participation.user`/`challenge` 접근부 null 가드 추가 (2026-09-07)
   - `ResponseChallengeDto`, `ResponseFeedDto` 생성자
   - `ChallengeService.update/delete`의 author 비교
   - `FeedService.update/delete`의 user 비교
@@ -167,7 +170,8 @@
 - [ ] 인증 정책 재검토: 조회성 엔드포인트(`GET /challenge`, `GET /challenge/:id`, `GET /feed/*`)의 Guard 필요 여부 결정
 - [ ] `User ↔ Auth` `forwardRef` 순환 의존 구조 재검토
 
-### Phase 3 — MariaDB → Supabase PostgreSQL 마이그레이션
+### Phase 3 — MariaDB → Supabase PostgreSQL 마이그레이션 (2026-09-07 범위 제외, 미실행)
+> Phase 1/2 완료 후 마이그레이션 없이 바로 Phase 4로 진행하기로 결정. 아래 항목은 추후 재검토용 기록.
 - [ ] 컬럼 타입 재설계 (`tinyint`→`smallint`, `timestamp`→`timestamptz` 여부, `json`→`jsonb` 검토)
 - [ ] 유니크 제약 + soft delete 정책 결정 (부분 유니크 인덱스 적용 여부)
 - [ ] PostgreSQL 기준 마이그레이션 히스토리 재작성 (기존 마이그레이션 아카이브)
@@ -176,7 +180,7 @@
 - [ ] 데이터 이관 전략 수립 (덤프/리스토어, 시퀀스 재설정)
 - [ ] 전체 테스트 스위트 Postgres 대상 재실행 (특히 `getChallengeRank` 쿼리)
 
-### Phase 4 — 부하 테스트 & 성능 개선 (여기까지만 진행)
+### Phase 4 — 부하 테스트 & 성능 개선 (Phase 2 완료 후 Phase 3 없이 바로 진행, 여기까지만 진행)
 - [ ] 부하 테스트 시나리오 설계 (랭킹 조회, 동시 참가/기록 갱신 우선)
 - [ ] 실측 후 슬로우 쿼리 EXPLAIN 확인
 - [ ] 필요 시 커서 기반 페이지네이션 검토

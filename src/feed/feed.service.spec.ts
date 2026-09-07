@@ -208,8 +208,8 @@ describe('FeedService', () => {
     it("제목이 중복인 경우", async () => {
       const feed = {
         ...feeds[1],
-        user_id: feeds[1].user.id,
-        challenge_id: feeds[1].challenge.id,
+        user_id: feeds[1].user!.id,
+        challenge_id: feeds[1].challenge!.id,
       }
       jest.spyOn(service, 'findByTitle').mockResolvedValue(feed);
       const dto = { challenge_id: 1, title: '테스트2', content: '테스트' };
@@ -222,8 +222,8 @@ describe('FeedService', () => {
     it("피드 수정", async () => {
       const feed = {
         ...feeds[0],
-        user_id: feeds[0].user.id,
-        challenge_id: feeds[0].challenge.id,
+        user_id: feeds[0].user!.id,
+        challenge_id: feeds[0].challenge!.id,
       }
       jest.spyOn(service, 'findOne').mockResolvedValue(feed);
       jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
@@ -261,13 +261,13 @@ describe('FeedService', () => {
     it("제목이 중복인 경우", async () => {
       const feed = {
         ...feeds[0],
-        user_id: feeds[0].user.id,
-        challenge_id: feeds[0].challenge.id,
+        user_id: feeds[0].user!.id,
+        challenge_id: feeds[0].challenge!.id,
       }
       const feed1 = {
         ...feeds[1],
-        user_id: feeds[1].user.id,
-        challenge_id: feeds[1].challenge.id,
+        user_id: feeds[1].user!.id,
+        challenge_id: feeds[1].challenge!.id,
       }
       jest.spyOn(service, 'findOne').mockResolvedValue(feed);
       jest.spyOn(service, 'findByTitle').mockResolvedValue(feed1);
@@ -279,8 +279,8 @@ describe('FeedService', () => {
     it("작성자 아닌 경우", async () => {
       const feed = {
         ...feeds[0],
-        user_id: feeds[0].user.id,
-        challenge_id: feeds[0].challenge.id,
+        user_id: feeds[0].user!.id,
+        challenge_id: feeds[0].challenge!.id,
       }
       jest.spyOn(service, 'findOne').mockResolvedValue(feed);
 
@@ -293,8 +293,8 @@ describe('FeedService', () => {
     it("피드 삭제", async () => {
       const feed = {
         ...feeds[0],
-        user_id: feeds[0].user.id,
-        challenge_id: feeds[0].challenge.id,
+        user_id: feeds[0].user!.id,
+        challenge_id: feeds[0].challenge!.id,
       }
       jest.spyOn(service, 'findOne').mockResolvedValue(feed);
 
@@ -311,8 +311,8 @@ describe('FeedService', () => {
     it("작성자가 아닌 경우", async () => {
       const feed = {
         ...feeds[0],
-        user_id: feeds[0].user.id,
-        challenge_id: feeds[0].challenge.id,
+        user_id: feeds[0].user!.id,
+        challenge_id: feeds[0].challenge!.id,
       }
       jest.spyOn(service, 'findOne').mockResolvedValue(feed);
       await expect(service.delete(1, 3)).rejects.toThrow("작성자만 접근 가능합니다.");
