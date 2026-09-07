@@ -133,7 +133,7 @@ describe('ChallengeService', () => {
     it('제목이 중복인 경우', async () => {
       mockChallengeRepository.findOne.mockResolvedValue(challenges[1]);
 
-      result = await service.findByTitle(1, '테스트2');
+      result = await service.findByTitle('테스트2', 1);
       expect(mockChallengeRepository.findOne).toHaveBeenCalledWith({ 
         where: {id: Not(1), title: '테스트2'},
         withDeleted: true,
@@ -143,7 +143,7 @@ describe('ChallengeService', () => {
 
     it('제목이 중복이 아닌 경우', async () => {
       mockChallengeRepository.findOne.mockResolvedValue(null);
-      result = await service.findByTitle(3, '테스트3');
+      result = await service.findByTitle('테스트3', 3);
       expect(result).toBeNull();
     });
   });

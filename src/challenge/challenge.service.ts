@@ -37,10 +37,10 @@ export class ChallengeService {
         });
     }
 
-    async findByTitle(challengeId: number, title: string): Promise<Challenge | null>{
+    async findByTitle(title: string, excludeId?: number): Promise<Challenge | null>{
         return await this.challengeRepository.findOne({
             where: {
-                id: Not(challengeId),
+                ...(excludeId !== undefined ? { id: Not(excludeId) } : {}),
                 title,
             },
             withDeleted: true,
@@ -57,7 +57,7 @@ export class ChallengeService {
         const {title, start_date, end_date } = dto;
  
         // 제목 중복 확인
-        const challenge = await this.findByTitle(0, title);
+        const challenge = await this.findByTitle(title);
         if(challenge){
             throw new UnauthorizedException("중복된 제목입니다.");
         }
@@ -86,7 +86,7 @@ export class ChallengeService {
 
         // 제목 중복 확인
         if (dto.title && dto.title !== challenge.title) {
-            const exists = await this.findByTitle(challengeId, dto.title);
+            const exists = await this.findByTitle(dto.title, challengeId);
             if (exists) {
                 throw new UnauthorizedException("중복된 제목입니다.");
             }

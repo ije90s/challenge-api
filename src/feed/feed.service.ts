@@ -49,10 +49,10 @@ export class FeedService {
         });
     }
 
-    async findByTitle(feedId: number, title: string): Promise<Feed | null>{
+    async findByTitle(title: string, excludeId?: number): Promise<Feed | null>{
         return await this.feedRepository.findOne({
             where: {
-                id: Not(feedId),
+                ...(excludeId !== undefined ? { id: Not(excludeId) } : {}),
                 title,
             },
             withDeleted: true,
@@ -74,7 +74,7 @@ export class FeedService {
             throw new UnauthorizedException("기간이 지났습니다.");
         }
 
-        const feed = await this.findByTitle(0, dto.title);
+        const feed = await this.findByTitle(dto.title);
         if(feed){
             throw new UnauthorizedException("중복된 제목입니다.");
         }
@@ -104,7 +104,7 @@ export class FeedService {
             throw new ForbiddenException("작성자만 접근 가능합니다.");
         }
 
-        const checkTitle = await this.findByTitle(feedId, dto.title);
+        const checkTitle = await this.findByTitle(dto.title, feedId);
         if (checkTitle) {
             throw new UnauthorizedException("중복된 제목입니다.");
         }

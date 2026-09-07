@@ -150,9 +150,9 @@
   - `ResponseChallengeDto`, `ResponseFeedDto` 생성자
   - `ChallengeService.update/delete`의 author 비교
   - `FeedService.update/delete`의 user 비교
-- [ ] `findByTitle(id, title)` sentinel(0) 패턴 제거 → `excludeId?: number`로 변경 (challenge, feed)
+- [x] `findByTitle(id, title)` sentinel(0) 패턴 제거 → `excludeId?: number`로 변경 (challenge, feed) (2026-09-07)
 - [x] `ParticipationService.update`의 score/challenge_count 갱신 원자적 처리 검토 (2026-09-07, 검토 완료 — read-modify-write 방식의 lost update 문제 확인. 실측 없이 방식(atomic increment/비관적 락/낙관적 락)을 정할 근거가 없어 실제 구현은 Phase 4 부하 테스트("동시 참가/기록 갱신" 시나리오) 실측 후 재검토로 확정 이월. 검토 중 발견한 `UpdateParticipationDto.score`/`challenge_count`의 음수값 미검증 문제만 `@Min(0)` 추가로 별도 반영, 상세는 `anything/worklog_2026-09-07.md` 참고)
-- [ ] `app.module.ts` / `typeorm.datasource.ts` DataSource 설정 통합
+- [x] `app.module.ts` / `typeorm.datasource.ts` DataSource 설정 통합 (2026-09-07, 진행 안 함 — 작성자가 마이그레이션 CLI(`typeorm.datasource.ts`)와 런타임 앱(`app.module.ts`)이 분리 동작하는 걸 직접 관찰하려는 목적으로 의도적으로 유지 중인 상태라 이번 계획에서 제외. 두 파일의 커넥션 자격증명 리터럴이 중복인 것 자체는 여전히 사실이며, 실제 위험(dev/prod 자동 분기 등)은 없음을 확인함 — 필요해지면 재검토)
 
 **1-3. 예외 처리 / Validation**
 - [ ] `sucess` → `success` 전역 통일 (`response.interceptor.ts`, `http.exception.filter.ts`, `multer.exception.filter.ts`, 관련 스펙/e2e assertion)

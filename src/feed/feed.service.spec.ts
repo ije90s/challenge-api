@@ -122,7 +122,7 @@ describe('FeedService', () => {
   describe("findByTitle", () => {
     it("제목이 있는 경우", async () => {
       mockFeedRepository.findOne.mockResolvedValue(feeds[0]);
-      result = await service.findByTitle(2, '테스트');
+      result = await service.findByTitle('테스트', 2);
       expect(mockFeedRepository.findOne).toHaveBeenCalledWith(
       {
         where: { id: Not(2), title: "테스트" },
@@ -133,7 +133,7 @@ describe('FeedService', () => {
 
     it("제목이 없는 경우", async () => {
       mockFeedRepository.findOne.mockResolvedValue(null);
-      result = await service.findByTitle(1, '테스트3');
+      result = await service.findByTitle('테스트3', 1);
       //expect(mockFeedRepository.findOneBy).toHaveBeenCalledWith({ id: Not(1), title: '테스트3' });
       expect(result).toBeNull();
     });
