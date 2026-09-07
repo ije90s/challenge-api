@@ -18,7 +18,7 @@ export class MulterExceptionFilter implements ExceptionFilter {
       }
       
       response.status(400).json({
-        sucess: false,
+        success: false,
         timestamp: new Date().toISOString(),
         path: request.originalUrl,
         error: 'Bad Request',

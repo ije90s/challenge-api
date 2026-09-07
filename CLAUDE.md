@@ -49,7 +49,7 @@ npm run typeorm:d -- migration:revert
 
 **모듈 구조**: `src/{user,auth,challenge,participation,feed}/` 각 모듈은 `*.controller.ts`, `*.service.ts`, `*.module.ts`, `dto/`, (auth 제외) `entity/`로 구성된다. `src/common/`은 전역 필터/인터셉터/미들웨어, `@User()` 파라미터 데코레이터, 공용 DTO(`RequestQueryDTO`, `ResponsePagingDto`), `util.ts`(multer 설정, 날짜 검증 헬퍼) 등 공통 요소를 담고 있다.
 
-**요청 파이프라인** (`main.ts`에서 구성): 전역 `ValidationPipe`(`whitelist` + `forbidNonWhitelisted` + `transform`) → 전역 `HttpExceptionFilter` → 전역 `ResponseInterceptor`가 모든 성공 응답을 `{ sucess: true, data }` 형태로 감싼다. 이 키가 인터셉터와 `HttpExceptionFilter`의 문자열 에러 분기에서는 `sucess`로 오타 나 있고, 객체 에러 분기에서는 `success`로 올바르게 적혀 있다 — 응답 스키마가 코드베이스 전체에서 일관되지 않은 상태이며, `anything/refactor_plan.md`에서 수정 대상으로 추적 중이다.
+**요청 파이프라인** (`main.ts`에서 구성): 전역 `ValidationPipe`(`whitelist` + `forbidNonWhitelisted` + `transform`) → 전역 `HttpExceptionFilter` → 전역 `ResponseInterceptor`가 모든 성공 응답을 `{ success: true, data }` 형태로 감싼다. 과거 인터셉터와 `HttpExceptionFilter`의 문자열 에러 분기에서 `sucess`로 오타 나 있던 것을 `success`로 통일했다 (2026-09-07, `anything/refactor_plan.md` 참고).
 
 **인증**: Passport JWT 전략(`auth/jwt/jwt.strategy.ts`)이 매 요청마다 디코딩된 토큰 페이로드의 이메일로 사용자를 다시 조회한다. `@User()` 데코레이터(`common/user.decorator.ts`)는 `request.user`를 읽는다. `JwtAuthGuard`는 `challenge`, `participation`, `feed` 컨트롤러에서 **클래스 단위**로 적용되어 있어, 읽기 전용 `GET` 요청을 포함한 모든 라우트가 현재 Bearer 토큰을 요구한다.
 

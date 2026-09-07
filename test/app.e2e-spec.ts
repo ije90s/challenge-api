@@ -34,7 +34,7 @@ describe('AppController (e2e)', () => {
     return request(app.getHttpServer())
       .get('/')
       .expect(200)
-      .expect({"sucess":true,"data":"Hello World!"});
+      .expect({"success":true,"data":"Hello World!"});
   });
 
   describe('User', () => {
@@ -48,7 +48,7 @@ describe('AppController (e2e)', () => {
         })
         .expect(409)
         //.expect(201)
-        //.expect({ sucess: true, data: { id: 2, email: 'test@test.com' } });
+        //.expect({ success: true, data: { id: 2, email: 'test@test.com' } });
       });
 
       it("회원가입 실패", () => {

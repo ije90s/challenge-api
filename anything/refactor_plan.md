@@ -155,7 +155,7 @@
 - [x] `app.module.ts` / `typeorm.datasource.ts` DataSource 설정 통합 (2026-09-07, 진행 안 함 — 작성자가 마이그레이션 CLI(`typeorm.datasource.ts`)와 런타임 앱(`app.module.ts`)이 분리 동작하는 걸 직접 관찰하려는 목적으로 의도적으로 유지 중인 상태라 이번 계획에서 제외. 두 파일의 커넥션 자격증명 리터럴이 중복인 것 자체는 여전히 사실이며, 실제 위험(dev/prod 자동 분기 등)은 없음을 확인함 — 필요해지면 재검토)
 
 **1-3. 예외 처리 / Validation**
-- [ ] `sucess` → `success` 전역 통일 (`response.interceptor.ts`, `http.exception.filter.ts`, `multer.exception.filter.ts`, 관련 스펙/e2e assertion)
+- [x] `sucess` → `success` 전역 통일 (`response.interceptor.ts`, `http.exception.filter.ts`, `multer.exception.filter.ts`, 관련 스펙/e2e assertion) (2026-09-07)
 - [ ] "중복" 계열 `UnauthorizedException` → `ConflictException` 재매핑 (challenge/feed 제목 중복, participation 중복 참가 등)
 - [x] `JwtStrategy.validate()`의 `await` 누락 수정 (2026-09-06, 상세는 `anything/worklog_2026-09-06.md` 참고)
 - [ ] `MulterExceptionFilter` 이중 응답(응답 후 재throw) 로직 정리

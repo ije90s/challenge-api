@@ -9,7 +9,7 @@ export class ResponseInterceptor implements NestInterceptor {
     return next
       .handle()
       .pipe(map((data) => ({
-        sucess: true,
+        success: true,
         data,
       })));
   }
