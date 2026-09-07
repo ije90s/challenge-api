@@ -151,7 +151,7 @@
   - `ChallengeService.update/delete`의 author 비교
   - `FeedService.update/delete`의 user 비교
 - [ ] `findByTitle(id, title)` sentinel(0) 패턴 제거 → `excludeId?: number`로 변경 (challenge, feed)
-- [ ] `ParticipationService.update`의 score/challenge_count 갱신 원자적 처리 검토 (실제 반영은 Phase 4와 함께 재검토)
+- [x] `ParticipationService.update`의 score/challenge_count 갱신 원자적 처리 검토 (2026-09-07, 검토 완료 — read-modify-write 방식의 lost update 문제 확인. 실측 없이 방식(atomic increment/비관적 락/낙관적 락)을 정할 근거가 없어 실제 구현은 Phase 4 부하 테스트("동시 참가/기록 갱신" 시나리오) 실측 후 재검토로 확정 이월. 검토 중 발견한 `UpdateParticipationDto.score`/`challenge_count`의 음수값 미검증 문제만 `@Min(0)` 추가로 별도 반영, 상세는 `anything/worklog_2026-09-07.md` 참고)
 - [ ] `app.module.ts` / `typeorm.datasource.ts` DataSource 설정 통합
 
 **1-3. 예외 처리 / Validation**
