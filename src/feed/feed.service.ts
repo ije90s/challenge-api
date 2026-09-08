@@ -109,8 +109,9 @@ export class FeedService {
             throw new ConflictException("중복된 제목입니다.");
         }
 
-        // 기존 이미지는 삭제 > 새 이미지 업로드    
-        dto.images = this.getFileArr(images) ?? feed.images;
+        // 새 이미지가 없으면 기존 이미지 유지
+        const newImages = this.getFileArr(images);
+        dto.images = newImages.length > 0 ? newImages : (feed.images ?? []);
         
         Object.assign(feed, dto);
         const savedFeed = await this.feedRepository.save(feed);

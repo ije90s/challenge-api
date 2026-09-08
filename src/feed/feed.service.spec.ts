@@ -251,6 +251,33 @@ describe('FeedService', () => {
       expect(result).toBeInstanceOf(ResponseFeedDto);
     });
 
+    it("새 이미지 없이 수정하는 경우 기존 이미지 유지", async () => {
+      const existingImages = ['feed/old1.png', 'feed/old2.png'];
+      const feed = {
+        ...feeds[0],
+        user_id: feeds[0].user!.id,
+        challenge_id: feeds[0].challenge!.id,
+        images: existingImages,
+      }
+      jest.spyOn(service, 'findOne').mockResolvedValue(feed);
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+
+      const dto = { title: '테스트3', content: '테스트3' };
+      const feedId = 1, userId = 1;
+
+      const savedEntity = { ...feed, ...dto };
+      mockFeedRepository.save.mockResolvedValue(savedEntity);
+
+      result = await service.update(feedId, userId, dto, []);
+      expect(mockFeedRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: feed.id,
+          images: existingImages,
+        })
+      );
+      expect(result.images).toEqual(existingImages);
+    });
+
     it("피드가 없는 경우", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(null);
 

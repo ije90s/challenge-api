@@ -159,7 +159,7 @@
 - [x] "중복" 계열 `UnauthorizedException` → `ConflictException` 재매핑 (challenge/feed 제목 중복, participation 중복 참가 등) (2026-09-07, 논의 중 발견한 범위 밖 오매핑도 함께 정리 — "챌린지/피드가 없습니다" → `NotFoundException`, "날짜 설정이 잘못되었습니다" → `BadRequestException`, "기간이 지났습니다"(feed/participation create+update) → `ConflictException`, participation의 "챌린지가 존재하지 않습니다" Forbidden/NotFound 불일치 → `NotFoundException`으로 통일. 상세는 `anything/worklog_2026-09-07.md` §8 참고)
 - [x] `JwtStrategy.validate()`의 `await` 누락 수정 (2026-09-06, 상세는 `anything/worklog_2026-09-06.md` 참고)
 - [x] `MulterExceptionFilter` 이중 응답(응답 후 재throw) 로직 정리 (2026-09-07, 상세는 `anything/worklog_2026-09-07.md` §9 참고)
-- [ ] `FeedService.update`의 이미지 유실 버그 수정 (`getFileArr(images) ?? feed.images`가 항상 배열 반환하는 문제)
+- [x] `FeedService.update`의 이미지 유실 버그 수정 (`getFileArr(images) ?? feed.images`가 항상 배열 반환하는 문제) (2026-09-08, 새 이미지 없으면 `feed.images` 유지하도록 수정, 전체 삭제 기능은 스코프 밖으로 결정)
 
 **1-4. 테스트 보강**
 - [ ] e2e 테스트 격리 전략 도입 (트랜잭션 롤백 또는 Testcontainers 기반 DB 리셋)
