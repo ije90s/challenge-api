@@ -162,7 +162,7 @@
 - [x] `FeedService.update`의 이미지 유실 버그 수정 (`getFileArr(images) ?? feed.images`가 항상 배열 반환하는 문제) (2026-09-08, 새 이미지 없으면 `feed.images` 유지하도록 수정, 전체 삭제 기능은 스코프 밖으로 결정)
 
 **1-4. 테스트 보강**
-- [ ] e2e 테스트 격리 전략 도입 (트랜잭션 롤백 또는 Testcontainers 기반 DB 리셋)
+- [x] e2e 테스트 격리 전략 도입 (트랜잭션 롤백 또는 Testcontainers 기반 DB 리셋) (2026-09-08, 별도 테스트 DB 없이 기존 로컬 DB 그대로 두고 트랜잭션 롤백 방식 채택. `test/utils/transactional-data-source.ts` 신설, `test/app.e2e-spec.ts` 전면 재작성 — 죽어있던 성공 assertion 복원 + 하드코딩 PK 제거도 함께 진행. 상세는 `anything/worklog_2026-09-08.md` Part 2 참고)
 - [ ] 컨트롤러 스펙에 최소 계약 테스트 추가 (Guard 통과/차단, 잘못된 body → 400)
 - [ ] 위 1-1~1-3 수정 항목에 대한 회귀 테스트 추가/보완
 
