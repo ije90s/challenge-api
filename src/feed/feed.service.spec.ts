@@ -314,6 +314,18 @@ describe('FeedService', () => {
       const dto = { title: '테스트2', content: '테스트2' };
       await expect(service.update(1, 2, dto, [])).rejects.toThrow("작성자만 접근 가능합니다.");
     });
+
+    it("작성자가 탈퇴하여 user가 null인 경우", async () => {
+      const feed = {
+        ...feeds[0],
+        user: null,
+        challenge_id: feeds[0].challenge!.id,
+      }
+      jest.spyOn(service, 'findOne').mockResolvedValue(feed);
+
+      const dto = { title: '테스트2', content: '테스트2' };
+      await expect(service.update(1, 1, dto, [])).rejects.toThrow("작성자만 접근 가능합니다.");
+    });
   });
 
   describe("delete", () => {
@@ -343,6 +355,16 @@ describe('FeedService', () => {
       }
       jest.spyOn(service, 'findOne').mockResolvedValue(feed);
       await expect(service.delete(1, 3)).rejects.toThrow("작성자만 접근 가능합니다.");
+    })
+
+    it("작성자가 탈퇴하여 user가 null인 경우", async () => {
+      const feed = {
+        ...feeds[0],
+        user: null,
+        challenge_id: feeds[0].challenge!.id,
+      }
+      jest.spyOn(service, 'findOne').mockResolvedValue(feed);
+      await expect(service.delete(1, 1)).rejects.toThrow("작성자만 접근 가능합니다.");
     })
   });
 });

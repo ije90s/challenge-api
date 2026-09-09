@@ -163,8 +163,8 @@
 
 **1-4. 테스트 보강**
 - [x] e2e 테스트 격리 전략 도입 (트랜잭션 롤백 또는 Testcontainers 기반 DB 리셋) (2026-09-08, 별도 테스트 DB 없이 기존 로컬 DB 그대로 두고 트랜잭션 롤백 방식 채택. `test/utils/transactional-data-source.ts` 신설, `test/app.e2e-spec.ts` 전면 재작성 — 죽어있던 성공 assertion 복원 + 하드코딩 PK 제거도 함께 진행. 상세는 `anything/worklog_2026-09-08.md` Part 2 참고)
-- [ ] 컨트롤러 스펙에 최소 계약 테스트 추가 (Guard 통과/차단, 잘못된 body → 400)
-- [ ] 위 1-1~1-3 수정 항목에 대한 회귀 테스트 추가/보완
+- [x] 컨트롤러 스펙에 최소 계약 테스트 추가 (Guard 통과/차단, 잘못된 body → 400) (2026-09-09, e2e가 이미 실 HTTP로 Guard 차단/400을 촘촘히 검증 중이라 컨트롤러 스펙에는 reflection 기반 최소 검증(`JwtAuthGuard` 적용 여부)만 추가 — `src/common/test/guard-metadata.helper.ts` 공유 헬퍼 신설. 상세는 `anything/worklog_2026-09-09.md` 참고)
+- [x] 위 1-1~1-3 수정 항목에 대한 회귀 테스트 추가/보완 (2026-09-09, 갭 4곳 전부 반영 — `jwt.strategy.spec.ts`/`multer.exception.filter.spec.ts` 신설, challenge/feed 서비스 스펙에 author/user null 케이스 추가, e2e에 participation 음수값 400 케이스 추가. 상세는 `anything/worklog_2026-09-09.md` 참고)
 
 ### Phase 2 — 모듈 구조 정리
 - [ ] 인증 정책 재검토: 조회성 엔드포인트(`GET /challenge`, `GET /challenge/:id`, `GET /feed/*`)의 Guard 필요 여부 결정

@@ -484,6 +484,26 @@ describe('AppController (e2e)', () => {
         })
         .expect(400)
       });
+
+      it("score가 음수인 경우", () => {
+        return request(app.getHttpServer())
+        .patch(`${baseUrl}/${challengeId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          score: -1
+        })
+        .expect(400)
+      });
+
+      it("challenge_count가 음수인 경우", () => {
+        return request(app.getHttpServer())
+        .patch(`${baseUrl}/${challengeId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .send({
+          challenge_count: -1
+        })
+        .expect(400)
+      });
     });
 
     describe("챌린지 포기", () => {

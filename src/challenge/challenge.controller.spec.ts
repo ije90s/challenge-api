@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ChallengeController } from './challenge.controller';
 import { ChallengeService } from './challenge.service';
+import { JwtAuthGuard } from '../auth/jwt/jwt.auth.guard';
+import { getGuards } from '../common/test/guard-metadata.helper';
 
 describe('ChallengeController', () => {
   let controller: ChallengeController;
@@ -24,5 +26,9 @@ describe('ChallengeController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('JwtAuthGuard가 클래스 전체에 적용되어 있어야 한다', () => {
+    expect(getGuards(ChallengeController)).toContain(JwtAuthGuard);
   });
 });

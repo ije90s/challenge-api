@@ -294,6 +294,12 @@ describe('ChallengeService', () => {
       await expect(service.update(1, 2, dto)).rejects.toThrow("작성자만 접근 가능합니다.");
     });
 
+    it("작성자가 탈퇴하여 author가 null인 경우", async () => {
+      const challenge = { ...challenges[0], author: null };
+      jest.spyOn(service, 'findOne').mockResolvedValue(challenge);
+      await expect(service.update(1, 1, dto)).rejects.toThrow("작성자만 접근 가능합니다.");
+    });
+
     it("날짜가 잘못된 경우", async () => {
       const challenge = {
         ...challenges[0],
@@ -330,6 +336,13 @@ describe('ChallengeService', () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(challenges[0]);
 
       await expect(service.delete(1, 3)).rejects.toThrow("작성자만 접근 가능합니다.");
+    });
+
+    it('작성자가 탈퇴하여 author가 null인 경우', async () => {
+      const challenge = { ...challenges[0], author: null };
+      jest.spyOn(service, 'findOne').mockResolvedValue(challenge);
+
+      await expect(service.delete(1, 1)).rejects.toThrow("작성자만 접근 가능합니다.");
     });
   });
 });
