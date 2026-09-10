@@ -168,7 +168,7 @@
 
 ### Phase 2 — 모듈 구조 정리
 - [x] 인증 정책 재검토: 조회성 엔드포인트(`GET /challenge`, `GET /challenge/:id`, `GET /feed/*`)의 Guard 필요 여부 결정 (2026-09-10, 소스 분석 결과 해당 서비스 메서드들은 `user`를 전혀 사용하지 않아 Guard가 기술적으로는 불필요함을 확인했으나, 작성자가 "회원가입 안 된 유저는 조회도 포함해 접근 못하게" 의도적으로 설계한 정책임을 확인 — 현행 클래스 단위 `JwtAuthGuard` 유지로 결론, 코드 변경 없음)
-- [ ] `User ↔ Auth` `forwardRef` 순환 의존 구조 재검토
+- [x] `User ↔ Auth` `forwardRef` 순환 의존 구조 재검토 (2026-09-10, 소스 분석 결과 순환의 실제 원인은 `UserController`가 로그인(`POST /user/login`) 처리를 위해 `AuthService`를 주입받는 것 하나뿐(`UserService`는 `AuthModule`을 전혀 쓰지 않음) — `AuthModule` 소속 `AuthController`로 로그인 라우트를 옮기면(`@Controller('user')`로 경로는 유지) `forwardRef` 없이 단방향 의존(`AuthModule → UserModule`)으로 정리 가능함을 확인. 다만 로컬 부하 테스트까지만 진행하고 보안 강화는 범위 밖이라는 프로젝트 방침상 이 리팩토링의 실익이 낮다고 판단해 현행 구조(양쪽 `forwardRef`) 유지로 결론 — `forwardRef`는 NestJS가 공식 지원하는 정상 패턴이라 방치해도 되는 수준의 이슈로 판단. 코드 변경 없음)
 
 ### Phase 3 — MariaDB → Supabase PostgreSQL 마이그레이션 (2026-09-07 범위 제외, 미실행)
 > Phase 1/2 완료 후 마이그레이션 없이 바로 Phase 4로 진행하기로 결정. 아래 항목은 추후 재검토용 기록.
