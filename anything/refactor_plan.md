@@ -167,7 +167,7 @@
 - [x] 위 1-1~1-3 수정 항목에 대한 회귀 테스트 추가/보완 (2026-09-09, 갭 4곳 전부 반영 — `jwt.strategy.spec.ts`/`multer.exception.filter.spec.ts` 신설, challenge/feed 서비스 스펙에 author/user null 케이스 추가, e2e에 participation 음수값 400 케이스 추가. 상세는 `anything/worklog_2026-09-09.md` 참고)
 
 ### Phase 2 — 모듈 구조 정리
-- [ ] 인증 정책 재검토: 조회성 엔드포인트(`GET /challenge`, `GET /challenge/:id`, `GET /feed/*`)의 Guard 필요 여부 결정
+- [x] 인증 정책 재검토: 조회성 엔드포인트(`GET /challenge`, `GET /challenge/:id`, `GET /feed/*`)의 Guard 필요 여부 결정 (2026-09-10, 소스 분석 결과 해당 서비스 메서드들은 `user`를 전혀 사용하지 않아 Guard가 기술적으로는 불필요함을 확인했으나, 작성자가 "회원가입 안 된 유저는 조회도 포함해 접근 못하게" 의도적으로 설계한 정책임을 확인 — 현행 클래스 단위 `JwtAuthGuard` 유지로 결론, 코드 변경 없음)
 - [ ] `User ↔ Auth` `forwardRef` 순환 의존 구조 재검토
 
 ### Phase 3 — MariaDB → Supabase PostgreSQL 마이그레이션 (2026-09-07 범위 제외, 미실행)
