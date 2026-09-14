@@ -161,3 +161,18 @@ slow query log(4,582건, 전체 요청의 87.5%)를 보면 전부 offset이 큰 
 
 - `ChallengeService.findAll`, `FeedService.findAll`, `ParticipationService.getMyChallenge`도 동일한 무제한 offset 페이지네이션 패턴을 쓰고 있어 데이터가 커지면 같은 문제가 재현될 수 있음 — 이번 세션은 랭킹 조회만 다뤘고, 이 세 엔드포인트는 손대지 않음.
 - Docker Compose의 slow query log 설정은 이번 조사에 쓰고 다시 껐음(영구로 켜두면 매 로컬 개발 세션마다 로그가 무한정 쌓이고 오버헤드가 생김) — 다음 부하 테스트(동시 참가/기록 갱신) 때 필요하면 `docker/docker-compose.yml`의 `command` 블록을 다시 추가할 것.
+
+## 11. 다음 부하 테스트(동시 참가/기록 갱신) 전 체크리스트
+
+이번 세션(§10)에서 실제로 겪은 세 가지 문제를 재발 방지용으로 남긴다 — 다음 TODO 시작 전에 순서대로 확인:
+
+1. **더미 데이터의 동적값**: 새 시딩 스크립트를 SQL로 직접 짤 때 `NOW()`/`NOW(6)` 같은 DB 함수를 멀티 로우 `INSERT ... VALUES` 안에 넣지 말 것 — MySQL/MariaDB는 한 SQL문 안에서 이 함수를 한 번만 평가해서, 같은 배치의 모든 행이 동일한 타임스탬프를 갖게 된다(§10에서 실제로 겪음). 행마다 실제로 다른 값이 필요하면(타임스탬프, 랜덤 시드 등) 애플리케이션 코드(Python 등)에서 미리 계산해 리터럴로 박아 넣을 것 — `anything/loadtest/seed_participation.py`가 이 패턴의 예시.
+2. **직접 작성한 SQL/쿼리빌더 조건의 오타·괄호 검증**: `.where()`/`.andWhere()`에 raw SQL 문자열로 `OR`가 섞인 조건을 넘길 때는 전체를 감싸는 괄호를 반드시 확인할 것(예: `((A) OR (B))`, `(A) OR (B)`가 아님) — TypeORM이 앞의 조건과 결합할 때 괄호가 없으면 의도와 다르게 파싱될 수 있다(§10 `myRank` 버그). **새로 작성한 쿼리는 k6/e2e로 검증하기 전에 먼저 실제 DB에 직접 실행(`docker exec mariadb mysql ...`)해서 결과 행 수·스캔 범위가 예상과 맞는지 눈으로 확인**할 것 — 이번 세션은 이 순서를 건너뛰어서 버그를 늦게 발견했다.
+3. **서버 재시작이 실제로 됐는지 확인**: `kill %1`/`pkill -f "<패턴>"`은 이 환경에서 신뢰할 수 없다(Bash 도구 호출마다 새 쉘이라 job control이 안 먹히고, `pkill -f`는 `nest start --watch`가 아니라 그 자식 프로세스인 `node .../dist/src/main`을 못 잡는다). 항상 다음 순서로 확인:
+   ```
+   lsof -ti :3000 | xargs -r kill -9   # PID로 직접 종료
+   lsof -i :3000                        # 비어있는지 확인
+   # ... 서버 재기동 ...
+   ps -o pid,lstart,command -p $(lsof -ti :3000)   # 새 PID의 시작 시각이 방금인지 확인
+   ```
+   추가로 `ps aux | grep "nest start --watch"`로 좀비 워처 프로세스가 남아있는지도 확인 — 누적되면 로컬 벤치마크 결과에 잡음을 만든다(§10에서 실제로 겪음).
