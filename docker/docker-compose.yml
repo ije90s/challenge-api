@@ -3,6 +3,10 @@ services:
     container_name: mariadb
     restart: always
     image: mariadb:10.6
+    command:
+      - --slow-query-log=1
+      - --slow-query-log-file=/var/lib/mysql/slow.log
+      - --long-query-time=0.05
     ports:
       - "${MYSQL_PORT}:3306"
     environment:

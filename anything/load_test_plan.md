@@ -60,8 +60,72 @@
 - 랭킹 조회: 목표 동시 접속자 수에서 p95 지연시간이 사전에 정한 임계값(예: 500ms, 실행 단계에서 서비스 성격에 맞게 재확정) 이내
 - 동시 기록 갱신(패턴 B): lost update가 재현되는지 여부 자체가 1차 산출물 — "통과/실패" 이분법보다는 "재현됨/안 됨 + 빈도"를 기록해 Phase 4 마지막 TODO(원자적 갱신 여부 최종 결정)의 근거로 사용
 
-## 8. 이번 문서에서 다루지 않는 것
+## 8. 이번 문서에서 다루지 않는 것 (2026-09-14 갱신)
 
-- 실행 도구 선정(k6/artillery/autocannon 등) 및 스크립트 작성
-- 실제 실행과 결과 수치
-- EXPLAIN 분석, 커서 기반 페이지네이션 검토, 원자적 갱신 방식 결정 — 모두 Phase 4의 이후 TODO
+- ~~실행 도구 선정 및 스크립트 작성~~ → k6로 확정, `anything/loadtest/` 참고 (2026-09-14)
+- ~~실제 실행과 결과 수치~~ → §9 참고 (2026-09-14)
+- ~~EXPLAIN 분석~~ → §9 참고 (2026-09-14)
+- 커서 기반 페이지네이션 검토, 원자적 갱신 방식 결정 — 여전히 Phase 4의 이후 TODO (§9의 실측 결과가 근거 자료가 됨)
+- 동시 참가/기록 갱신(§5-2) 실행 — 아직 미실행, 다음 TODO
+
+## 9. 실측 결과 — 랭킹 조회 (2026-09-14)
+
+### 실행 방법
+- 도구: k6 v2.2.0 (`brew install k6`)
+- 스크립트: `anything/loadtest/`
+  - `setup_users.sh`: 챌린지 2개(type 0/1) 생성 + 실 유저 20명 가입/로그인/참가 → `tokens.json`(gitignore)
+  - `seed_participation.py`: 필러 Participation 5만 건 × 2챌린지(총 10만 건) SQL 생성, `user_id=NULL`(랭킹 쿼리가 user 관계를 select하지 않아 실제 유저 불필요)
+  - `rank_query.js`: `GET /participation/challenge/:id/rank`에 랜덤 페이지로 ramping-vus(0→20→50→100, 총 100초) 부하
+- 환경: 로컬 `npm run start:dev` + `docker compose`(MariaDB 10.6), `docker-compose.yml`에 slow query log 추가(`long_query_time=0.05`)
+
+### EXPLAIN — §1의 "정렬 방향 불일치 → filesort" 가설 기각
+
+```
+EXPLAIN SELECT * FROM participation p WHERE p.challenge_id = 410
+  ORDER BY p.score DESC, p.created_at DESC LIMIT 20 OFFSET 0;
+
+type: range   key: idx_challenge_score_rank   Extra: Using where   (filesort 없음)
+```
+
+인덱스 컬럼은 `(challenge_id, score, created_at)` 오름차순이지만, 쿼리가 두 컬럼 모두 `DESC`라 InnoDB가 해당 브랜치를 **역방향으로 스캔**해서 정렬을 만족시킨다 — filesort가 필요 없다. `challenge_count` 정렬(type=1, `idx_challenge_count_rank`)도 동일하게 확인. **§1/§1-7에서 실측 전 우려했던 인덱스-정렬 불일치 문제는 실제로는 발생하지 않는다.**
+
+### 진짜 병목: offset 자체의 스캔 비용
+
+같은 쿼리를 offset만 바꿔 `ANALYZE FORMAT=JSON`으로 실측:
+
+| offset | r_total_time_ms | r_rows(스캔) |
+|---|---|---|
+| 0 | 0.065 | 20 |
+| 40000 | 42.8 | 40,020 |
+
+인덱스를 타면서도 LIMIT/OFFSET 이전 로우를 전부 순회하기 때문에 페이지가 뒤로 갈수록 비용이 선형으로 증가한다 — `refactor_plan.md` §7의 "offset 페이지네이션은 페이지 번호가 커질수록 스캔 비용 증가" 우려가 실측으로 확인됨.
+
+### k6 결과 (100 VUs 램프업, 랜덤 페이지 1~2501)
+
+```
+http_req_duration: avg=862ms  p(90)=1.65s  p(95)=1.75s  max=2.17s
+http_reqs: 5238 (52.4/s)   checks: 100% 통과   app_errors: 0%
+threshold 'p(95)<500ms' 실패 (p95=1.75s)
+```
+
+slow query log(4,582건, 전체 요청의 87.5%)를 보면 전부 offset이 큰 랭킹 쿼리였고, 동시 부하 하에서 단일 쿼리 DB 처리 시간이 최대 390ms까지 올라갔다(격리 상태 42ms 대비). HTTP 레벨 p95(1.75s)가 DB 쿼리 시간(최대 390ms)보다 훨씬 큰 것은 **TypeORM/mysql2가 커넥션 풀 크기를 명시적으로 설정하지 않아 기본값(10)에 머물러 있고**, 100 동시 요청이 그 풀을 두고 대기하는 게 주요 원인으로 추정된다(`app.module.ts`에 `extra.connectionLimit` 없음) — 이번 TODO 범위 밖이라 수정하지 않았으나, Phase 4 다음 TODO(커서 페이지네이션/원자적 갱신 결정)나 별도 항목으로 다룰 만한 새로운 발견 사항으로 기록.
+
+### 커넥션 풀 크기 실험 — 병목 아님으로 반증됨
+
+위 "HTTP p95가 DB 쿼리 시간보다 훨씬 크다"는 관찰에 대해 "TypeORM/mysql2 기본 커넥션 풀(10)이 병목일 것"이라는 가설을 세우고, `app.module.ts`의 TypeORM 옵션에 `extra: { connectionLimit: 100 }`을 임시로 추가해 동일 조건으로 재실행했다(MariaDB `max_connections=151`이라 여유 있음을 사전 확인). 결과는 가설과 반대:
+
+| | 풀 10 (기본) | 풀 100 |
+|---|---|---|
+| HTTP p95 | 1.75s | **2.1s** (악화) |
+| HTTP max | 2.17s | **4.7s** (악화) |
+| slow 쿼리 수 (요청 대비) | 4,582 / 5,238 | **8,982** / 5,501 (악화) |
+| 최악 단일 쿼리 시간 | ~390ms | **1.24s** (악화) |
+
+풀을 늘리자 더 많은 offset 스캔 쿼리가 동시에 MariaDB에 도달해 CPU/디스크 I/O를 더 심하게 다투게 됐다 — "커넥션 대기열" 문제가 아니라 **DB 자체가 동시에 처리할 수 있는 무거운 스캔의 양이 한계에 부딪힌 것**. 즉 병목은 처음부터 끝까지 offset 스캔 비용 하나였고, 커넥션 풀은 원인이 아니었다. `connectionLimit: 100` 변경은 효과가 없어 코드에는 반영하지 않고 되돌림(`app.module.ts` 원복 확인).
+
+### 결론 / 다음 TODO에 넘기는 것
+
+- filesort 문제 아님 → 인덱스 컬럼 순서 재설계는 불필요.
+- 커넥션 풀 크기도 원인이 아님(실측으로 반증) → 이 방향은 더 이상 검토하지 않음.
+- 병목은 **offset 스캔 비용** 하나로 좁혀짐 → "필요 시 커서 기반 페이지네이션 검토" TODO에서 실제로 진행할 근거 확보. (페이지네이션 계약 자체를 바꾸는 건 이번 세션 범위 밖으로 결정 — 사용자 확인, 2026-09-14)
+- 로컬 DB에는 이번 실측으로 생긴 필러 데이터(챌린지 410/411, 참가 10만 건, 테스트 유저 20여 명)가 정리되지 않고 남아있음 — 다음 부하 테스트(동시 참가/기록 갱신)에서 재사용 예정.

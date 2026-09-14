@@ -20,6 +20,10 @@ lerna-debug.log*
 /coverage
 /.nyc_output
 
+# Load test artifacts (실 JWT / 생성된 대량 시딩 SQL — 재실행으로 언제든 재생성 가능)
+anything/loadtest/tokens.json
+anything/loadtest/seed_participation.sql
+
 # IDEs and editors
 /.idea
 .project
