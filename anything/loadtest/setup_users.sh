@@ -59,7 +59,12 @@ for i in $(seq 1 "$USER_COUNT"); do
   curl -s -o /dev/null -X POST "$BASE_URL/participation/challenge/$COUNT_CHALLENGE_ID" \
     -H "Authorization: Bearer $TOKEN"
 
-  TOKENS=$(python3 -c "import json,sys; t=json.loads('$TOKENS'); t.append('$TOKEN'); print(json.dumps(t))")
+  TOKENS=$(TOKENS="$TOKENS" TOKEN="$TOKEN" python3 -c "
+import json, os
+tokens = json.loads(os.environ['TOKENS'])
+tokens.append(os.environ['TOKEN'])
+print(json.dumps(tokens))
+")
   echo "  vu $i ready"
 done
 

@@ -570,6 +570,34 @@ describe('AppController (e2e)', () => {
       })
     });
 
+    describe("내 순위 조회", () => {
+      it("조회 성공", async () => {
+        const challengeId = await joinNewChallenge(accessToken);
+        return request(app.getHttpServer())
+        .get(`${baseUrl}/${challengeId}/rank/me`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200)
+        .expect(res => {
+          expect(res.body.data.myRank).toBe(1);
+        })
+      });
+
+      it("참가하지 않은 경우", async () => {
+        const challenge = await createChallenge(accessToken);
+        return request(app.getHttpServer())
+        .get(`${baseUrl}/${challenge.id}/rank/me`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(403)
+      });
+
+      it("challengeID 타입이 잘못된 경우", () => {
+        return request(app.getHttpServer())
+        .get(`${baseUrl}/ff/rank/me`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(400)
+      });
+    });
+
     describe("내 챌린지 조회", () => {
       beforeEach(async () => {
         await joinNewChallenge(accessToken);

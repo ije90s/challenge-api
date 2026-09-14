@@ -6,6 +6,7 @@ import { User } from '../common/user.decorator';
 import { RequestUser } from '../common/types/request-user.type';
 import { ResponseParticipationDto } from './dto/response-participation.dto';
 import { ResponsePagingDto } from '../common/dto/response-paging.dto';
+import { ResponseMyRankDto } from './dto/response-my-rank.dto';
 import { RequestQueryDTO } from '../common/dto/request-query.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -32,6 +33,12 @@ export class ParticipationController {
     @Get(":challengeId/rank")
     async getChallengeRank(@Param("challengeId", ParseIntPipe) challengeId: number, @User() user: RequestUser, @Query() query: RequestQueryDTO): Promise<ResponsePagingDto<ResponseParticipationDto>>{
         return await this.participationService.getChallengeRank(challengeId, user.id, query.page, query.limit);
+    }
+
+    @Get(":challengeId/rank/me")
+    async getMyRank(@Param("challengeId", ParseIntPipe) challengeId: number, @User() user: RequestUser): Promise<ResponseMyRankDto>{
+        const myRank = await this.participationService.getMyRank(challengeId, user.id);
+        return ResponseMyRankDto.of(myRank);
     }
 
     @Get("mine")

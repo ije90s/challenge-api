@@ -24,9 +24,11 @@ describe('ParticipationService', () => {
 
   const mockQueryBuilder = {
     where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
     addOrderBy: jest.fn().mockReturnThis(),
     getManyAndCount: jest.fn(),
+    getCount: jest.fn(),
     skip: jest.fn().mockReturnThis(),
     take: jest.fn().mockReturnThis(),
   };
@@ -341,10 +343,14 @@ describe('ParticipationService', () => {
       jest.spyOn(mockChallengeService, 'findOne').mockResolvedValue(challenge);
     });
 
+    beforeEach(() => {
+      jest.spyOn(mockParticipationService, 'createQueryBuilder').mockReturnValue(mockQueryBuilder);
+    });
+
     it("ResponseDTO 확인", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(participations[0]);
-      jest.spyOn(mockQueryBuilder, 'getManyAndCount').mockResolvedValue([[participations[0]], 1]);
-      
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[participations[0]], 1]);
+
       const challengeId = 1;
       result = await service.getChallengeRank(challengeId, 1, 1, 10);
       expect(result).toBeInstanceOf(ResponsePagingDto);
@@ -353,9 +359,9 @@ describe('ParticipationService', () => {
       expect(result.meta).toBeInstanceOf(Object);
     });
 
-    it("쿼리 확인", async () => {
+    it("쿼리 확인 (100위 이내 페이지)", async () => {
       jest.spyOn(mockParticipationService, 'findOne').mockResolvedValue(participations[0]);
-      jest.spyOn(mockParticipationService, 'createQueryBuilder').mockReturnValue(mockQueryBuilder);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([[participations[0]], 1]);
 
       await service.getChallengeRank(1, 1, 1, 10);
 
@@ -367,6 +373,64 @@ describe('ParticipationService', () => {
       expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith('p.created_at', 'DESC');
       expect(mockQueryBuilder.skip).toHaveBeenCalledWith(0);
       expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
+    });
+
+    it("100위를 넘는 페이지는 조회 없이 빈 배열 반환", async () => {
+      jest.spyOn(mockParticipationService, 'findOne').mockResolvedValue(participations[0]);
+      mockQueryBuilder.getCount.mockResolvedValue(150);
+
+      result = await service.getChallengeRank(1, 1, 11, 10); // offset = 100
+
+      expect(mockQueryBuilder.getManyAndCount).not.toHaveBeenCalled();
+      expect(result.items).toEqual([]);
+      expect(result.meta.total).toBe(100); // RANK_VISIBLE_LIMIT으로 클램프
+    });
+  });
+
+  describe("getMyRank", () => {
+    const challenge = {
+      challengeId: 1,
+      type: 0,
+      mininum_count: 1,
+      title: '테스트',
+      content: '테스트',
+      start_date: new Date('2025-12-01'),
+      end_date: new Date('2025-12-31'),
+    };
+
+    beforeEach(() => {
+      jest.spyOn(mockChallengeService, 'findOne').mockResolvedValue(challenge);
+      jest.spyOn(mockParticipationService, 'createQueryBuilder').mockReturnValue(mockQueryBuilder);
+    });
+
+    it("순위 계산 확인", async () => {
+      jest.spyOn(service, 'findOne').mockResolvedValue(participations[0]);
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+
+      result = await service.getMyRank(1, 1);
+      expect(result).toBe(1);
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'p.challenge_id = :challengeId',
+        { challengeId: 1 },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'p.id != :myId',
+        { myId: participations[0].id },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        '((p.score > :myValue) OR (p.score = :myValue AND p.created_at > :myCreatedAt))',
+        { myValue: participations[0].score, myCreatedAt: participations[0].created_at },
+      );
+    });
+
+    it("챌린지가 존재하지 않은 경우", async () => {
+      jest.spyOn(mockChallengeService, 'findOne').mockResolvedValue(null);
+      await expect(service.getMyRank(1, 1)).rejects.toThrow("챌린지가 존재하지 않습니다.");
+    });
+
+    it("참가하지 않은 경우", async () => {
+      jest.spyOn(service, 'findOne').mockResolvedValue(null);
+      await expect(service.getMyRank(1, 1)).rejects.toThrow("참가하지 않았습니다.");
     });
   });
 

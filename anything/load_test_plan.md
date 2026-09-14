@@ -87,7 +87,7 @@ EXPLAIN SELECT * FROM participation p WHERE p.challenge_id = 410
 type: range   key: idx_challenge_score_rank   Extra: Using where   (filesort 없음)
 ```
 
-인덱스 컬럼은 `(challenge_id, score, created_at)` 오름차순이지만, 쿼리가 두 컬럼 모두 `DESC`라 InnoDB가 해당 브랜치를 **역방향으로 스캔**해서 정렬을 만족시킨다 — filesort가 필요 없다. `challenge_count` 정렬(type=1, `idx_challenge_count_rank`)도 동일하게 확인. **§1/§1-7에서 실측 전 우려했던 인덱스-정렬 불일치 문제는 실제로는 발생하지 않는다.**
+인덱스 컬럼은 `(challenge_id, score, created_at)` 오름차순이지만, 쿼리가 두 컬럼 모두 `DESC`라 InnoDB가 해당 브랜치를 **역방향으로 스캔**해서 정렬을 만족시킨다 — filesort가 필요 없다. `challenge_count` 정렬(type=1, `idx_challenge_count_rank`)도 `EXPLAIN`으로 별도 확인(동일하게 filesort 없음) — 단, 커밋된 `rank_query.js`는 `scoreChallengeId`만 부하를 걸도록 작성돼 있어 이 challenge_count 경로 확인은 **재현 가능한 스크립트가 아니라 세션 중 직접 실행한 EXPLAIN**에 근거함(재검증하려면 `rank_query.js`의 대상을 `countChallengeId`로 바꿔 다시 실행). **§1/§1-7에서 실측 전 우려했던 인덱스-정렬 불일치 문제는 실제로는 발생하지 않는다.**
 
 ### 진짜 병목: offset 자체의 스캔 비용
 
@@ -129,3 +129,35 @@ slow query log(4,582건, 전체 요청의 87.5%)를 보면 전부 offset이 큰 
 - 커넥션 풀 크기도 원인이 아님(실측으로 반증) → 이 방향은 더 이상 검토하지 않음.
 - 병목은 **offset 스캔 비용** 하나로 좁혀짐 → "필요 시 커서 기반 페이지네이션 검토" TODO에서 실제로 진행할 근거 확보. (페이지네이션 계약 자체를 바꾸는 건 이번 세션 범위 밖으로 결정 — 사용자 확인, 2026-09-14)
 - 로컬 DB에는 이번 실측으로 생긴 필러 데이터(챌린지 410/411, 참가 10만 건, 테스트 유저 20여 명)가 정리되지 않고 남아있음 — 다음 부하 테스트(동시 참가/기록 갱신)에서 재사용 예정.
+
+## 10. 개선 구현 — 상위 100위 캡 + 본인 순위 분리 (2026-09-14)
+
+§9 실측을 근거로 "커서 기반 페이지네이션 검토" TODO를 다음 방향으로 대체 결정(사용자 확인):
+- 랭킹 목록은 **상위 100위까지만** 노출 — offset+limit이 100을 넘는 페이지는 조회 없이 빈 배열 반환(`RANK_VISIBLE_LIMIT`, `participation.service.ts`).
+- **본인 순위**는 목록과 별도로 `GET /participation/challenge/:challengeId/rank/me`에서 제공(`ResponseMyRankDto`).
+
+### 시행착오 — myRank를 처음엔 랭킹 응답에 합쳐서 넣었다가 되돌림
+
+처음에는 "매 rank 응답에 myRank 필드를 함께 내려준다"로 구현했으나(사용자 확인), k6로 재검증하니 p95가 거의 개선되지 않았다(1.75s → 1.69s). 원인 조사 중 실제로는 두 가지 문제가 겹쳐 있었다:
+
+1. **재현 환경 오염**: 세션 중 `kill`/`pkill`이 실제로 프로세스를 못 죽여서, "수정 후 재검증"이라고 생각한 실행 중 상당수가 실제로는 고치기 전 서버를 때리고 있었다. PID를 직접 확인해서 발견.
+2. **myRank 자체가 새 병목**: 깨끗한 환경에서 정말로 고쳐진 코드로 재검증해도 개선이 없었다(오히려 p95=2.82~3.85s로 악화). 원인은 `myRank`가 이제 **모든** 요청마다 COUNT 쿼리를 하나 더 무는데, 이 쿼리 자체는 격리 상태에서 6.5ms로 싸지만 100명 동시 요청 하에서는 경합 때문에 50~60ms로 늘어나 — offset 문제를 고친 대신 "모든 요청에 새 비용"을 얹은 셈이 됐다.
+
+사용자와 재논의 후 myRank를 별도 엔드포인트로 분리하기로 결정. 분리 후 **완전히 깨끗한 환경**(Docker 컨테이너 재시작 + 재시딩 + 새 서버 프로세스)에서 최종 검증:
+
+| 지표 | 원래 (offset 무제한) | 최종 (top 100 캡, myRank 분리) |
+|---|---|---|
+| HTTP p95 | 1.75s | **473ms** (임계값 500ms 통과) |
+| 처리량 | 52.4 req/s | **189.3 req/s** (~3.6배) |
+| 완료 요청 수 (100초) | 5,238 | **18,933** |
+
+### 구현 중 발견해서 함께 고친 버그
+
+- **`myRank` 쿼리의 괄호 버그**: `.andWhere()`에 넘긴 OR 조건을 전체를 감싸는 괄호 없이 작성해서(`(A) OR (B)` 형태), TypeORM이 앞의 `.where(challenge_id=...)`와 결합할 때 `challenge_id` 필터가 OR로 깨져 **테이블 전체(다른 챌린지 포함)를 스캔**하고 있었다. slow query log의 `Rows_examined: 100041`(두 챌린지 합산)로 발견. 전체 OR 표현식을 괄호로 한 번 더 감싸 수정.
+- **본인 자신을 "더 높은 순위"로 잘못 카운트하는 정밀도 버그**: `Participation.created_at`은 DB에 `timestamp(6)`(마이크로초)로 저장되지만 Entity(`@CreateDateColumn`)에는 정밀도가 지정돼 있지 않아, JS `Date` 왕복 과정에서 잘려나가는 경우가 있다. 그 결과 자기 자신의 로우가 자신보다 "더 늦다(더 낮은 순위다)"고 잘못 카운트되어 `myRank`가 실제보다 1 크게 나오는 버그가 있었음(e2e 테스트로 발견: 참가자 1명뿐인 챌린지에서 myRank가 1이 아니라 2로 나옴). `p.id != :myId` 조건으로 자기 자신을 명시적으로 제외해서 수정 — 정밀도 문제를 우회.
+- 남은 한계(고치지 않음, 알려진 제약으로 기록): 동점자 간 tie-break에 여전히 `created_at`의 정밀도 문제가 남아있어, score와 created_at이 완전히 같은(밀리초 단위) 두 참가자가 있으면 `myRank`와 실제 목록상의 위치가 어긋날 수 있음. 실사용 트래픽에서는 발생 가능성이 매우 낮다고 판단해 이번 범위에서는 손대지 않음.
+
+### 이번에 다루지 않은 것 (다음 TODO 후보로 기록)
+
+- `ChallengeService.findAll`, `FeedService.findAll`, `ParticipationService.getMyChallenge`도 동일한 무제한 offset 페이지네이션 패턴을 쓰고 있어 데이터가 커지면 같은 문제가 재현될 수 있음 — 이번 세션은 랭킹 조회만 다뤘고, 이 세 엔드포인트는 손대지 않음.
+- Docker Compose의 slow query log 설정은 이번 조사에 쓰고 다시 껐음(영구로 켜두면 매 로컬 개발 세션마다 로그가 무한정 쌓이고 오버헤드가 생김) — 다음 부하 테스트(동시 참가/기록 갱신) 때 필요하면 `docker/docker-compose.yml`의 `command` 블록을 다시 추가할 것.
