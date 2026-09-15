@@ -963,8 +963,36 @@ jobs:
         run: npm run build
 ```
 
+### increment() / update() 로 원자성 보장하기 (동시성)
 
+`save()`는 엔티티 객체를 통째로 UPDATE한다 — "읽어서(findOne) → 메모리에서 값 변경 → save()"로 저장하는 패턴은, 그 사이에 다른 요청이 같은 로우를 바꾸면 그 변경분을 스테일 값으로 덮어써버릴 수 있음(lost update).
 
+```typescript
+// 문제 패턴
+const participation = await this.findOne(...);   // ① score=10 읽음
+participation.score += 5;                        // ② 메모리에서 15로 계산
+await this.repo.save(participation);              // ③ score=15로 통째 UPDATE
+// ①~③ 사이에 다른 요청이 DB의 score를 17로 바꿔놨어도 ③이 15로 덮어씀
+```
 
-  
-  
+**`increment()`는 값을 SQL이 직접 계산한다** — 고정 `+1`이 아니라 넘긴 인자만큼 더한다.
+
+```typescript
+// repository.increment(conditions, propertyPath, value)
+await this.repo.increment({ id: participation.id }, 'score', score);
+// 생성되는 SQL: UPDATE participation SET score = score + ? WHERE id = ?
+```
+
+- `conditions`는 그냥 SQL `WHERE`절 — 유니크할 필요는 없고, 매칭되는 로우 전부가 갱신됨. "한 로우만" 바꾸고 싶어서 PK(`id`)를 쓰는 것일 뿐, `increment()`가 유니크를 요구하는 게 아님.
+- `score = score + ?`의 `score`는 **이 UPDATE문이 실행되는 순간의 DB 값** — DB(InnoDB 등)가 UPDATE 실행 시 대상 로우에 짧게 배타 락을 걸었다가 커밋과 함께 풀기 때문에, 동시에 들어온 두 `increment()`는 자동으로 직렬화됨(먼저 커밋된 값을 다음 연산이 기준으로 삼음). 그래서 두 요청이 `+3`, `+5`를 동시에 보내도 최종적으로 정확히 `+8`이 반영됨.
+
+**`repository.update(id, { field })`도 같은 이유로 씀** — `save(entity)`가 엔티티에 담긴 모든 컬럼을 다시 쓰는 것과 달리, `update()`는 지정한 컬럼만 SQL에 포함시킨다. 예를 들어 `status`만 바꾸면 되는 메서드에서 `save(participation)`을 쓰면, 그 `participation` 객체가 갖고 있는 (읽었던 시점의, 스테일할 수 있는) `score`/`challenge_count`까지 같이 딸려나가서 다른 요청이 `increment()`로 만들어둔 최신값을 덮어쓸 수 있음. `update(id, { status })`는 애초에 그 컬럼들을 쿼리에 포함하지 않아서 건드릴 방법이 없음.
+
+**`save()` vs `increment()`/`update()` 선택 기준**: 다른 로직에 영향을 주는지, 연관 테이블이 뭔지는 무관하고, **딱 "이 컬럼에 쓰려는 새 값이 갱신 전 값에 의존해서 계산되는가"** 하나만 본다.
+
+| 새 값 계산 | 예시 | 동시성 안전하게 쓰려면 |
+| --- | --- | --- |
+| 이전 값에 의존 (`이전값 + n`) | `score += n`, 좋아요 수, 재고 차감 | `increment()`/`decrement()`, 또는 raw SQL 표현식 |
+| 이전 값과 무관 (리터럴/확정값 대입) | `title = "새 제목"`, `status = 1`(완료 확정) | `save()`/`update()` 아무거나 무방(멱등이라 동시에 같은 값을 써도 안전) |
+
+더 복잡하게 "여러 컬럼을 함께, 일관되게" 원자적으로 바꿔야 하면 `increment()` 수준으로는 부족하고 트랜잭션 + 비관적 락(`SELECT ... FOR UPDATE`)/낙관적 락(`@VersionColumn`)으로 가야 함 — 락 경합/대기 vs 재시도 로직의 트레이드오프는 실측(부하 테스트) 없이는 어느 쪽이 나은지 판단하기 어려움.
