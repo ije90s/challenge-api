@@ -78,17 +78,34 @@ export class ParticipationService {
 
         const score = dto.score ?? 0;
         const count = dto.challenge_count ?? 0;
-        const total = challenge.type === 0 ? score + participation.score : count + participation.challenge_count;
-        if (participation.status !== 1 && challenge.mininum_count <= total) {
-            participation.status = 1;
-            participation.complete_date = new Date();
-        }
-    
-        participation.score+=score;
-        participation.challenge_count+=count;
 
-        const savedParticipation = await this.participationRepository.save(participation);
-        return ResponseParticipationDto.from(savedParticipation);
+        // score/challenge_count는 SQL 원자 연산(UPDATE ... SET col = col + ?)으로 증분한다.
+        // "읽어서 메모리에서 더한 뒤 save()로 통째로 덮어쓰는" 기존 방식은 동시 요청 시
+        // lost update가 발생함을 부하 테스트로 실측 확인함(anything/load_test_plan.md §12).
+        if (score !== 0) {
+            await this.participationRepository.increment({ id: participation.id }, 'score', score);
+        }
+        if (count !== 0) {
+            await this.participationRepository.increment({ id: participation.id }, 'challenge_count', count);
+        }
+
+        const updated = (score !== 0 || count !== 0)
+            ? await this.participationRepository.findOneByOrFail({ id: participation.id })
+            : participation;
+
+        const total = challenge.type === 0 ? updated.score : updated.challenge_count;
+        if (updated.status !== 1 && challenge.mininum_count <= total) {
+            updated.status = 1;
+            updated.complete_date = new Date();
+            // status/complete_date만 갱신 — score/challenge_count 컬럼은 건드리지 않아
+            // 이 사이 다른 요청이 넣은 원자적 증분을 덮어쓰지 않는다.
+            await this.participationRepository.update(updated.id, {
+                status: updated.status,
+                complete_date: updated.complete_date,
+            });
+        }
+
+        return ResponseParticipationDto.from(updated);
     }
 
     async updateStatus(userId: number, challengeId: number): Promise<ResponseParticipationDto>{
@@ -103,11 +120,12 @@ export class ParticipationService {
         }
 
         const status = participation.status === 2 ? 0 : 2;
+        // status만 갱신 — save()로 엔티티 전체를 덮어쓰면 이 사이 update()의 원자적
+        // increment()가 만든 score/challenge_count 변경을 스테일 값으로 되돌릴 수 있다.
+        await this.participationRepository.update(participation.id, { status });
         participation.status = status;
 
-        const savedParticipation = await this.participationRepository.save(participation);
-
-        return ResponseParticipationDto.from(savedParticipation);
+        return ResponseParticipationDto.from(participation);
     }
 
     async getChallengeRank(challengeId: number, userId: number, page: number, limit: number): Promise<ResponsePagingDto<ResponseParticipationDto>>{

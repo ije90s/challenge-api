@@ -184,7 +184,8 @@
 - [x] 부하 테스트 시나리오 설계 (랭킹 조회, 동시 참가/기록 갱신 우선) (2026-09-14, 시나리오 문서만 작성하기로 범위 결정 — 실행 도구 선정/스크립트/실측은 다음 TODO로 이월. 상세는 `anything/load_test_plan.md` 참고)
 - [x] 실측 후 슬로우 쿼리 EXPLAIN 확인 (2026-09-14, k6로 랭킹 조회 부하 테스트 실행 — filesort는 발생하지 않음을 확인(§1-7 가설 기각), offset 페이지네이션 자체의 스캔 비용 증가(offset 0: 0.065ms → offset 40000: 42.8ms)가 실제 병목임을 실측으로 확인. "커넥션 풀 기본값(10)이 원인일 것"이라는 부가 가설도 세워 `connectionLimit: 100`으로 재실측했으나 오히려 악화됨을 확인하고 반증(풀이 아니라 DB의 동시 스캔 처리 한계가 원인) — 코드는 원복. 상세는 `anything/load_test_plan.md` §9 참고)
 - [x] 필요 시 커서 기반 페이지네이션 검토 (2026-09-14, §9 실측 근거로 커서 방식 대신 "상위 100위 캡 + 본인 순위 별도 엔드포인트"로 대체 결정 — 사용자 확인. 구현 후 최종 k6 검증: p95 1.75s→473ms(임계값 500ms 통과), 처리량 52.4→189.3 req/s. 구현 중 `myRank` 쿼리의 괄호 버그(챌린지 필터 우회)와 자기 자신을 잘못 카운트하는 타임스탬프 정밀도 버그를 발견해 함께 수정. `ChallengeService.findAll`/`FeedService.findAll`/`getMyChallenge`도 같은 무제한 offset 패턴이나 이번 범위 밖 — 상세는 `anything/load_test_plan.md` §10 참고)
-- [ ] score/challenge_count 원자적 갱신 여부 최종 결정 (실측 기반)
+- [x] score/challenge_count 원자적 갱신 여부 최종 결정 (실측 기반) (2026-09-15, k6로 같은 참가 로우에 동시 PATCH 20건 실측 — lost update 재현율 90~95%(20건 중 18~19건 유실)로 심각하게 확인됨. `repository.increment()`로 SQL 원자 연산 전환해 재실측 시 0건 유실(20/20 정확) 및 완료 임계값 동시 교차 케이스도 정상 동작 확인. 코드리뷰에서 `updateStatus()`의 `save()`가 동시 `increment()` 결과를 덮어쓸 수 있는 잔여 갭을 추가로 발견해 같은 패턴(타깃 컬럼만 갱신)으로 함께 수정. 상세는 `anything/worklog_2026-09-15.md` 참고)
+- [ ] `ParticipationService.create`의 중복 참가 check-then-act race 검토 (`findOne`으로 기존 참가 확인 후 `create`+`save` — 마이그레이션(`1766221023728-Init.ts`) 확인 결과 `participation` 테이블에 `(user_id, challenge_id)` DB 레벨 UNIQUE 제약 없음, 동시 `POST` 시 중복 참가 로우 생성 가능. 2026-09-15 score/challenge_count 원자성 분석 중 발견해 별도 항목으로 분리)
 
 ### 범위 제외 / 최소화 (참고용)
 - 보안 강화(Rate Limiting, Refresh Token, helmet, 파일 시그니처 검증 등)는 로컬 진행 특성상 작업하지 않음

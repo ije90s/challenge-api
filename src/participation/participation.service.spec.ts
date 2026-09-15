@@ -41,6 +41,9 @@ describe('ParticipationService', () => {
     save: jest.fn(),
     findAndCount: jest.fn(),
     createQueryBuilder: jest.fn(() => mockQueryBuilder),
+    increment: jest.fn(),
+    findOneByOrFail: jest.fn(),
+    update: jest.fn(),
   }
 
   beforeEach(async () => {
@@ -229,41 +232,35 @@ describe('ParticipationService', () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(participations[1]);
 
       const challengeId = 1;
-      participation = { ...participations[1], }
-
-      mockParticipationService.save.mockResolvedValue(participation);
 
       result = await service.update(2, challengeId, {});
-      expect(mockParticipationService.save).toHaveBeenCalledWith(expect.objectContaining({
-        id: participations[1].id,
-        score: 0,
-        challenge_count: 0,
-        complete_date: null,
-      }));
+      expect(mockParticipationService.increment).not.toHaveBeenCalled();
+      expect(mockParticipationService.findOneByOrFail).not.toHaveBeenCalled();
+      expect(mockParticipationService.update).not.toHaveBeenCalled();
       expect(result.score).toBe(0);
       expect(result.complete_date).toBeNull();
       expect(result).toBeInstanceOf(ResponseParticipationDto);
     });
-    
+
     it("기록 업데이트 성공 - 값이 있는 경우", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(participations[0]);
-      
+
       const challengeId = 1;
       dto = { score: 1 };
       participation = {
         ...participations[0],
-        complete_date: new Date(),
         score: 2,
-        status: 1,
       }
-      mockParticipationService.save.mockResolvedValue(participation);
+      mockParticipationService.findOneByOrFail.mockResolvedValue(participation);
 
       result = await service.update(1, challengeId, dto);
-      expect(mockParticipationService.save).toHaveBeenCalledWith(expect.objectContaining({
-        id: participations[0].id,
-        score: participation.score,
-        status: participation.status,
-      }));
+      expect(mockParticipationService.increment).toHaveBeenCalledWith(
+        { id: participations[0].id }, 'score', 1,
+      );
+      expect(mockParticipationService.update).toHaveBeenCalledWith(
+        participations[0].id,
+        expect.objectContaining({ status: 1 }),
+      );
       expect(result.id).toBe(1);
       expect(result.score).toBe(2);
       expect(result.complete_date).not.toBeNull();
@@ -286,33 +283,24 @@ describe('ParticipationService', () => {
     it("챌린지 포기 성공", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(participations[0]);
       const challengeId = 1;
-      const savedEntity = { ...participations[0], status: 2, }
-      mockParticipationService.save.mockResolvedValue(savedEntity);
       result = await service.updateStatus(1, challengeId);
       expect(service.findOne).toHaveBeenCalledWith(challengeId, 1);
-      expect(mockParticipationService.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: participations[0].id,
-          status: 2
-      }));
+      expect(mockParticipationService.update).toHaveBeenCalledWith(
+        participations[0].id,
+        { status: 2 },
+      );
       expect(result.status).toEqual(2);
     });
 
     it("챌린지 포기 취소", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(participations[2]);
       const challengeId = 1;
-      const savedEntity = {
-        ...participations[2],
-        status: 0,
-      };
-      mockParticipationService.save.mockResolvedValue(savedEntity);
-      
+
       result = await service.updateStatus(4, challengeId);
       expect(service.findOne).toHaveBeenCalledWith(challengeId, 4);
-      expect(mockParticipationService.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: 0,
-        })
+      expect(mockParticipationService.update).toHaveBeenCalledWith(
+        participations[2].id,
+        { status: 0 },
       );
       expect(result.status).toBe(0);
     });
