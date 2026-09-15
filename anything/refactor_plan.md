@@ -186,6 +186,12 @@
 - [x] 필요 시 커서 기반 페이지네이션 검토 (2026-09-14, §9 실측 근거로 커서 방식 대신 "상위 100위 캡 + 본인 순위 별도 엔드포인트"로 대체 결정 — 사용자 확인. 구현 후 최종 k6 검증: p95 1.75s→473ms(임계값 500ms 통과), 처리량 52.4→189.3 req/s. 구현 중 `myRank` 쿼리의 괄호 버그(챌린지 필터 우회)와 자기 자신을 잘못 카운트하는 타임스탬프 정밀도 버그를 발견해 함께 수정. `ChallengeService.findAll`/`FeedService.findAll`/`getMyChallenge`도 같은 무제한 offset 패턴이나 이번 범위 밖 — 상세는 `anything/load_test_plan.md` §10 참고)
 - [x] score/challenge_count 원자적 갱신 여부 최종 결정 (실측 기반) (2026-09-15, k6로 같은 참가 로우에 동시 PATCH 20건 실측 — lost update 재현율 90~95%(20건 중 18~19건 유실)로 심각하게 확인됨. `repository.increment()`로 SQL 원자 연산 전환해 재실측 시 0건 유실(20/20 정확) 및 완료 임계값 동시 교차 케이스도 정상 동작 확인. 코드리뷰에서 `updateStatus()`의 `save()`가 동시 `increment()` 결과를 덮어쓸 수 있는 잔여 갭을 추가로 발견해 같은 패턴(타깃 컬럼만 갱신)으로 함께 수정. 상세는 `anything/worklog_2026-09-15.md` 참고)
 - [ ] `ParticipationService.create`의 중복 참가 check-then-act race 검토 (`findOne`으로 기존 참가 확인 후 `create`+`save` — 마이그레이션(`1766221023728-Init.ts`) 확인 결과 `participation` 테이블에 `(user_id, challenge_id)` DB 레벨 UNIQUE 제약 없음, 동시 `POST` 시 중복 참가 로우 생성 가능. 2026-09-15 score/challenge_count 원자성 분석 중 발견해 별도 항목으로 분리)
+- [x] `ChallengeService.findAll`/`FeedService.findAll`/`getMyChallenge`(§Phase 4 2026-09-14 항목에서 "같은 무제한 offset 패턴, 범위 밖"으로 남겨뒀던 후보) 추가 부하 테스트 진행 여부 결정 (2026-09-15, 진행 안 함으로 결정 — 사용자 확인. 페이지네이션 UI는 쿼리 성능과 무관하게 동일하게 구현되므로 프론트엔드 화면 설계에 영향 없음, 로컬/개인 사용 규모에서는 랭킹 쿼리 실측 때(4만 건)만큼 데이터가 쌓일 가능성이 낮음(참가자당 1행인 랭킹과 달리 챌린지/피드 개수는 통상 훨씬 적음), 이번 주 내 프론트엔드 완료 일정 우선. 이걸로 Phase 4의 부하 테스트 범위는 위 중복 참가 race 검토 1건만 남기고 종료)
+
+### Phase 5 — 프론트엔드(frontend-pratice) 연동 준비 (Phase 4 완료 후)
+> 2026-09-15 신설. 실제 프론트엔드 개발은 별도 리포지토리 `frontend-pratice`(GitHub 원격명 `react-pratice`)에서 진행하지만, 이 두 항목은 `challenge-api` 쪽 코드 없이는 프론트가 API를 아예 호출/조회할 수 없어 이 리포지토리의 선행 작업으로 등록한다.
+- [ ] CORS 설정 추가 (`main.ts`에 `app.enableCors()` 없음) — Vite 개발 서버(다른 origin)에서 API 호출 시 브라우저가 CORS로 차단할 것으로 예상, 로그인/회원가입부터 막힘
+- [ ] 업로드 이미지 정적 서빙 설정 (`app.useStaticAssets()` 또는 `ServeStaticModule`, `/uploads` prefix) — `feed.service.ts`가 이미지를 `uploads/feed/{filename}`에 디스크 저장하고 `ResponseFeedDto.images`엔 `"feed/파일명.jpg"` 상대경로 문자열만 담는데, 정적 파일 서빙 설정이 전혀 없어 프론트에서 이미지를 HTTP로 조회할 방법이 없음
 
 ### 범위 제외 / 최소화 (참고용)
 - 보안 강화(Rate Limiting, Refresh Token, helmet, 파일 시그니처 검증 등)는 로컬 진행 특성상 작업하지 않음
