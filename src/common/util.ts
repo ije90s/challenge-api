@@ -3,16 +3,18 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
 
+export const UPLOADS_ROOT_DIR = path.join(__dirname, '..', 'uploads');
+
 const createFolder = (folder: string) => {
   try {
     console.log('💾 Create a root uploads folder...');
-    fs.mkdirSync(path.join(__dirname, '..', `uploads`));
+    fs.mkdirSync(UPLOADS_ROOT_DIR);
   } catch (error) {
     console.log('The folder already exists...');
   }
   try {
     console.log(`💾 Create a ${folder} uploads folder...`);
-    fs.mkdirSync(path.join(__dirname, '..', `uploads/${folder}`));
+    fs.mkdirSync(path.join(UPLOADS_ROOT_DIR, folder));
   } catch (error) {
     console.log(`The ${folder} folder already exists...`);
   }
@@ -23,7 +25,7 @@ const storage = (folder: string): multer.StorageEngine => {
   return multer.diskStorage({
     destination(req, file, cb) {
       //* 어디에 저장할 지
-      const folderName = path.join(__dirname, '..', `uploads/${folder}`);
+      const folderName = path.join(UPLOADS_ROOT_DIR, folder);
       cb(null, folderName);
     },
     filename(req, file, cb) {
