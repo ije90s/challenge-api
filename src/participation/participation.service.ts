@@ -4,13 +4,21 @@ import { ChallengeService } from '../challenge/challenge.service';
 import { checkThePast } from '../common/util';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Participation } from './entity/participation.entity';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { ResponseParticipationDto } from './dto/response-participation.dto';
 import { ResponsePagingDto } from '../common/dto/response-paging.dto';
 
 // 랭킹 조회는 상위 이 순위까지만 노출한다 — offset 페이지네이션의 스캔 비용이
 // 순위가 깊어질수록 커지는 문제를 실측으로 확인(anything/load_test_plan.md §9)한 데 따른 결정.
 const RANK_VISIBLE_LIMIT = 100;
+
+const ALREADY_PARTICIPATING_MESSAGE = "이미 참가중입니다.";
+const UNIQUE_USER_CHALLENGE_INDEX = 'idx_unique_user_challenge';
+
+interface MysqlDriverError {
+    code?: string;
+    sqlMessage?: string;
+}
 
 @Injectable()
 export class ParticipationService {
@@ -43,17 +51,30 @@ export class ParticipationService {
 
         const participation = await this.findOne(challengeId, userId);
         if(participation){
-            throw new ConflictException("이미 참가중입니다.");
+            throw new ConflictException(ALREADY_PARTICIPATING_MESSAGE);
         }
 
-        const newParticipation = this.participationRepository.create({ 
+        const newParticipation = this.participationRepository.create({
             challenge: { id: challengeId },
             user: { id: userId },
         });
 
-        const savedParticipation = await this.participationRepository.save(newParticipation);
-
-        return ResponseParticipationDto.from(savedParticipation);
+        try {
+            const savedParticipation = await this.participationRepository.save(newParticipation);
+            return ResponseParticipationDto.from(savedParticipation);
+        } catch (error) {
+            // 위 findOne 사전 체크와 실제 insert 사이의 레이스로 동시 요청이 모두
+            // 통과했을 경우, DB 유니크 인덱스(idx_unique_user_challenge)가 최종 방어선이 된다.
+            // sqlMessage로 위반된 인덱스까지 확인해, 이 테이블에 다른 유니크 제약이 추가되더라도
+            // 무관한 위반을 "이미 참가중입니다"로 잘못 뭉개지 않게 한다.
+            const driverError = error instanceof QueryFailedError
+                ? (error.driverError as MysqlDriverError)
+                : undefined;
+            if (driverError?.code === 'ER_DUP_ENTRY' && driverError.sqlMessage?.includes(UNIQUE_USER_CHALLENGE_INDEX)) {
+                throw new ConflictException(ALREADY_PARTICIPATING_MESSAGE);
+            }
+            throw error;
+        }
     }
 
     async update(userId: number, challengeId: number, dto: UpdateParticipationDto): Promise<ResponseParticipationDto>{

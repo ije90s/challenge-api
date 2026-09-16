@@ -7,6 +7,7 @@ import { Participation } from './entity/participation.entity';
 import { UpdateParticipationDto } from './dto/update-participation.dto';
 import { ResponseParticipationDto } from './dto/response-participation.dto';
 import { ResponsePagingDto } from '../common/dto/response-paging.dto';
+import { QueryFailedError } from 'typeorm';
 
 // 올바른 mock 경로
 jest.mock('../common/util', () => ({
@@ -206,6 +207,41 @@ describe('ParticipationService', () => {
     it("이미 참가 중인 경우", async () => {
       jest.spyOn(service, 'findOne').mockResolvedValue(participations[0]);
       await expect(service.create(1, 1)).rejects.toThrow("이미 참가중입니다.");
+    });
+
+    const makeDupEntryError = (sqlMessage: string): QueryFailedError => {
+      const driverError = Object.assign(new Error(sqlMessage), { code: 'ER_DUP_ENTRY', sqlMessage });
+      return new QueryFailedError('INSERT ...', [], driverError);
+    };
+
+    it("findOne 통과 후 save에서 유니크 제약 위반이 발생한 경우 (동시 요청 레이스)", async () => {
+      jest.spyOn(service, 'findOne').mockResolvedValue(null);
+
+      const dupError = makeDupEntryError("Duplicate entry '3-1' for key 'idx_unique_user_challenge'");
+      mockParticipationService.create.mockReturnValue(participation);
+      mockParticipationService.save.mockRejectedValue(dupError);
+
+      await expect(service.create(3, 1)).rejects.toThrow("이미 참가중입니다.");
+    });
+
+    it("save에서 다른 유니크 제약 위반이 발생하면 그대로 전파한다", async () => {
+      jest.spyOn(service, 'findOne').mockResolvedValue(null);
+
+      const dupError = makeDupEntryError("Duplicate entry 'x' for key 'some_other_index'");
+      mockParticipationService.create.mockReturnValue(participation);
+      mockParticipationService.save.mockRejectedValue(dupError);
+
+      await expect(service.create(3, 1)).rejects.toThrow(dupError);
+    });
+
+    it("save에서 유니크 제약과 무관한 에러가 발생하면 그대로 전파한다", async () => {
+      jest.spyOn(service, 'findOne').mockResolvedValue(null);
+
+      const otherError = new Error('connection lost');
+      mockParticipationService.create.mockReturnValue(participation);
+      mockParticipationService.save.mockRejectedValue(otherError);
+
+      await expect(service.create(3, 1)).rejects.toThrow("connection lost");
     });
   });
 

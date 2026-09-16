@@ -436,6 +436,22 @@ describe('AppController (e2e)', () => {
         .expect(409)
       });
 
+      it("동시에 두 번 참가 요청을 보내도 한 건만 성공한다 (중복 참가 레이스)", async () => {
+        const responses = await Promise.all([
+          request(app.getHttpServer())
+            .post(`${baseUrl}/${challengeId}`)
+            .set('Authorization', `Bearer ${accessToken}`)
+            .send({ challenge_id: challengeId }),
+          request(app.getHttpServer())
+            .post(`${baseUrl}/${challengeId}`)
+            .set('Authorization', `Bearer ${accessToken}`)
+            .send({ challenge_id: challengeId }),
+        ]);
+
+        const statuses = responses.map(res => res.status).sort();
+        expect(statuses).toEqual([201, 409]);
+      });
+
       it("잘못된 토큰인 경우", () => {
         return request(app.getHttpServer())
         .post(`${baseUrl}/${challengeId}`)

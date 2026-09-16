@@ -6,6 +6,7 @@ import { Challenge } from "../../challenge/entity/challenge.entity";
 @Entity({ name: "participation" })
 @Index('idx_challenge_score_rank', ['challenge', 'score', 'created_at'])
 @Index('idx_challenge_count_rank', ['challenge', 'challenge_count', 'created_at'])
+@Index('idx_unique_user_challenge', ['user', 'challenge'], { unique: true })
 export class Participation extends CommonEntity{
 
     @Column({type: 'int', nullable: false, default: 0})
