@@ -67,7 +67,7 @@ describe('AppController (e2e)', () => {
   afterAll(async () => {
     for (const imagePath of uploadedImagePaths) {
       try {
-        fs.unlinkSync(path.join(__dirname, '..', 'src', 'uploads', imagePath));
+        fs.unlinkSync(path.join(__dirname, '..', 'src', imagePath));
       } catch {
         // 이미 없으면 무시 (best-effort 정리)
       }

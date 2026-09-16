@@ -270,7 +270,7 @@ describe('FeedService', () => {
       const feedId = 1, userId = 1;
       const images = [{ filename: '1.png'}, {filename: '2.png'}] as any;
       
-      const savedImages = ['feed/1.png', 'feed/2.png'];
+      const savedImages = ['uploads/feed/1.png', 'uploads/feed/2.png'];
       const savedEntity = { ...feeds[0], ...dto, images: savedImages };
       mockFeedRepository.save.mockResolvedValue(savedEntity);
 

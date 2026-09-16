@@ -49,7 +49,7 @@ export class FeedService {
         const fileNameArr: string[] = [];
         if(images){
             images.map(item => {
-                fileNameArr.push(`feed/${item.filename}`);
+                fileNameArr.push(`uploads/feed/${item.filename}`);
             });
         }
         return fileNameArr;
