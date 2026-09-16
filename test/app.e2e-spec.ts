@@ -165,6 +165,22 @@ describe('AppController (e2e)', () => {
         })
         .expect(400);
       });
+
+      it("동시에 같은 이메일로 두 번 가입 요청을 보내도 한 건만 성공한다 (중복 가입 레이스)", async () => {
+        const email = `${unique('signup-race')}@test.com`;
+
+        const responses = await Promise.all([
+          request(app.getHttpServer())
+            .post('/user')
+            .send({ email, password: '1234' }),
+          request(app.getHttpServer())
+            .post('/user')
+            .send({ email, password: '1234' }),
+        ]);
+
+        const statuses = responses.map(res => res.status).sort();
+        expect(statuses).toEqual([201, 409]);
+      });
     });
 
     describe("로그인", () => {

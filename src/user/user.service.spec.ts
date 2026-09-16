@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ResponseUserDto } from "./dto/response-user.dto";
 import { User } from './entity/user.entity';
+import { QueryFailedError } from 'typeorm';
 
 jest.mock('bcrypt');
 
@@ -66,6 +67,32 @@ describe('UserService', () => {
     it('계정이 존재하는 경우', async () => {
       jest.spyOn(service, 'findOneByEmail').mockResolvedValue(userEntity);
       await expect(service.signUp({email, password})).rejects.toThrow("이미 존재하는 이메일입니다.");
+    });
+
+    const makeDupEntryError = (sqlMessage: string): QueryFailedError => {
+      const driverError = Object.assign(new Error(sqlMessage), { code: 'ER_DUP_ENTRY', sqlMessage });
+      return new QueryFailedError('INSERT ...', [], driverError);
+    };
+
+    it('findOneByEmail 통과 후 save에서 유니크 제약 위반이 발생한 경우 (동시 요청 레이스)', async () => {
+      const dupError = makeDupEntryError("Duplicate entry 'test@gmail.com' for key 'idx_unique_email'");
+      mockUserRepository.save.mockRejectedValue(dupError);
+
+      await expect(service.signUp({ email, password })).rejects.toThrow("이미 존재하는 이메일입니다.");
+    });
+
+    it('save에서 다른 유니크 제약 위반이 발생하면 그대로 전파한다', async () => {
+      const dupError = makeDupEntryError("Duplicate entry 'x' for key 'some_other_index'");
+      mockUserRepository.save.mockRejectedValue(dupError);
+
+      await expect(service.signUp({ email, password })).rejects.toThrow(dupError);
+    });
+
+    it('save에서 유니크 제약과 무관한 에러가 발생하면 그대로 전파한다', async () => {
+      const otherError = new Error('connection lost');
+      mockUserRepository.save.mockRejectedValue(otherError);
+
+      await expect(service.signUp({ email, password })).rejects.toThrow(otherError);
     });
   });
 
