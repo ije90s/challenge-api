@@ -193,7 +193,7 @@
 
 ### Phase 5 — 프론트엔드(frontend-pratice) 연동 준비 (Phase 4 완료 후)
 > 2026-09-15 신설. 실제 프론트엔드 개발은 별도 리포지토리 `frontend-pratice`(GitHub 원격명 `react-pratice`)에서 진행하지만, 이 두 항목은 `challenge-api` 쪽 코드 없이는 프론트가 API를 아예 호출/조회할 수 없어 이 리포지토리의 선행 작업으로 등록한다.
-- [ ] CORS 설정 추가 (`main.ts`에 `app.enableCors()` 없음) — Vite 개발 서버(다른 origin)에서 API 호출 시 브라우저가 CORS로 차단할 것으로 예상, 로그인/회원가입부터 막힘
+- [x] CORS 설정 추가 (`main.ts`에 `app.enableCors()` 없음) — Vite 개발 서버(다른 origin)에서 API 호출 시 브라우저가 CORS로 차단할 것으로 예상, 로그인/회원가입부터 막힘 (2026-09-16, origin을 하드코딩하지 않고 `FRONTEND_ORIGIN` 환경변수로 신설 — 인증이 Authorization 헤더 기반이라 `credentials` 옵션은 불필요. code-review에서 "env var 미설정 시 `cors` 패키지가 origin을 `*`로 열어버리는" 문제를 발견해 부팅 시 `FRONTEND_ORIGIN` 미설정이면 즉시 에러로 죽도록 fail-fast 검증 추가, CLAUDE.md 필수 환경변수 목록도 갱신)
 - [ ] 업로드 이미지 정적 서빙 설정 (`app.useStaticAssets()` 또는 `ServeStaticModule`, `/uploads` prefix) — `feed.service.ts`가 이미지를 `uploads/feed/{filename}`에 디스크 저장하고 `ResponseFeedDto.images`엔 `"feed/파일명.jpg"` 상대경로 문자열만 담는데, 정적 파일 서빙 설정이 전혀 없어 프론트에서 이미지를 HTTP로 조회할 방법이 없음
 
 ### 범위 제외 / 최소화 (참고용)

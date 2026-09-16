@@ -43,7 +43,7 @@ npm run typeorm:d -- migration:run
 npm run typeorm:d -- migration:revert
 ```
 
-필수 환경변수(`.env` / `.env.dev` / `.env.prod`, gitignore 처리되어 커밋되지 않음): `PORT`, `MODE`, `JWT_SECRET`, `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`. `docker/.env`는 로컬 Docker MariaDB 컨테이너용 `MYSQL_*` 변수를 별도로 가진다.
+필수 환경변수(`.env` / `.env.dev` / `.env.prod`, gitignore 처리되어 커밋되지 않음): `PORT`, `MODE`, `JWT_SECRET`, `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME`, `FRONTEND_ORIGIN`(CORS 허용 origin, 미설정 시 부팅 실패). `docker/.env`는 로컬 Docker MariaDB 컨테이너용 `MYSQL_*` 변수를 별도로 가진다.
 
 ## 아키텍처
 

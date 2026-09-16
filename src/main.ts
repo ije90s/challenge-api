@@ -6,7 +6,11 @@ import { ResponseInterceptor } from './common/interceptor/response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe({ 
+  if (!process.env.FRONTEND_ORIGIN) {
+    throw new Error('FRONTEND_ORIGIN is not set');
+  }
+  app.enableCors({ origin: process.env.FRONTEND_ORIGIN });
+  app.useGlobalPipes(new ValidationPipe({
     transform: true, 
     whitelist: true,
     forbidNonWhitelisted: true,
