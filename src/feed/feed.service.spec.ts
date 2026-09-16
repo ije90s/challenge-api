@@ -4,9 +4,14 @@ import { ChallengeService } from '../challenge/challenge.service';
 import { checkThePast } from '../common/util';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Feed } from './entity/feed.entity';
-import { Not } from 'typeorm';
+import { Not, QueryFailedError } from 'typeorm';
 import { ResponseFeedDto } from './dto/response-feed.dto';
 import { ResponsePagingDto } from '../common/dto/response-paging.dto';
+
+const makeDupEntryError = (sqlMessage: string): QueryFailedError => {
+  const driverError = Object.assign(new Error(sqlMessage), { code: 'ER_DUP_ENTRY', sqlMessage });
+  return new QueryFailedError('INSERT ...', [], driverError);
+};
 
 // 올바른 mock 경로
 jest.mock('../common/util', () => ({
@@ -216,6 +221,39 @@ describe('FeedService', () => {
 
       await expect(service.create(1, dto, [])).rejects.toThrow("중복된 제목입니다.");
     });
+
+    it("findByTitle 통과 후 save에서 유니크 제약 위반이 발생한 경우 (동시 요청 레이스)", async () => {
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+      const dto = { challenge_id: 1, title: '테스트3', content: '테스트3' };
+      mockFeedRepository.create.mockReturnValue(feed);
+
+      const dupError = makeDupEntryError("Duplicate entry '테스트3' for key 'idx_unique_feed_title'");
+      mockFeedRepository.save.mockRejectedValue(dupError);
+
+      await expect(service.create(3, dto, [])).rejects.toThrow("중복된 제목입니다.");
+    });
+
+    it('save에서 다른 유니크 제약 위반이 발생하면 그대로 전파한다', async () => {
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+      const dto = { challenge_id: 1, title: '테스트3', content: '테스트3' };
+      mockFeedRepository.create.mockReturnValue(feed);
+
+      const dupError = makeDupEntryError("Duplicate entry 'x' for key 'some_other_index'");
+      mockFeedRepository.save.mockRejectedValue(dupError);
+
+      await expect(service.create(3, dto, [])).rejects.toThrow(dupError);
+    });
+
+    it('save에서 유니크 제약과 무관한 에러가 발생하면 그대로 전파한다', async () => {
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+      const dto = { challenge_id: 1, title: '테스트3', content: '테스트3' };
+      mockFeedRepository.create.mockReturnValue(feed);
+
+      const otherError = new Error('connection lost');
+      mockFeedRepository.save.mockRejectedValue(otherError);
+
+      await expect(service.create(3, dto, [])).rejects.toThrow(otherError);
+    });
   });
 
   describe("update", () => {
@@ -301,6 +339,54 @@ describe('FeedService', () => {
 
       const dto = { title: '테스트2', content: '테스트2' };
       await expect(service.update(1, 1, dto, [])).rejects.toThrow("중복된 제목입니다.");
+    });
+
+    it("findByTitle 통과 후 save에서 유니크 제약 위반이 발생한 경우 (동시 요청 레이스)", async () => {
+      const feed = {
+        ...feeds[0],
+        user_id: feeds[0].user!.id,
+        challenge_id: feeds[0].challenge!.id,
+      }
+      jest.spyOn(service, 'findOne').mockResolvedValue(feed);
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+
+      const dto = { title: '테스트2', content: '테스트2' };
+      const dupError = makeDupEntryError("Duplicate entry '테스트2' for key 'idx_unique_feed_title'");
+      mockFeedRepository.save.mockRejectedValue(dupError);
+
+      await expect(service.update(1, 1, dto, [])).rejects.toThrow("중복된 제목입니다.");
+    });
+
+    it('save에서 다른 유니크 제약 위반이 발생하면 그대로 전파한다', async () => {
+      const feed = {
+        ...feeds[0],
+        user_id: feeds[0].user!.id,
+        challenge_id: feeds[0].challenge!.id,
+      }
+      jest.spyOn(service, 'findOne').mockResolvedValue(feed);
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+
+      const dto = { title: '테스트2', content: '테스트2' };
+      const dupError = makeDupEntryError("Duplicate entry 'x' for key 'some_other_index'");
+      mockFeedRepository.save.mockRejectedValue(dupError);
+
+      await expect(service.update(1, 1, dto, [])).rejects.toThrow(dupError);
+    });
+
+    it('save에서 유니크 제약과 무관한 에러가 발생하면 그대로 전파한다', async () => {
+      const feed = {
+        ...feeds[0],
+        user_id: feeds[0].user!.id,
+        challenge_id: feeds[0].challenge!.id,
+      }
+      jest.spyOn(service, 'findOne').mockResolvedValue(feed);
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+
+      const dto = { title: '테스트2', content: '테스트2' };
+      const otherError = new Error('connection lost');
+      mockFeedRepository.save.mockRejectedValue(otherError);
+
+      await expect(service.update(1, 1, dto, [])).rejects.toThrow(otherError);
     });
 
     it("작성자 아닌 경우", async () => {

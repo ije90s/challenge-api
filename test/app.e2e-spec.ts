@@ -283,6 +283,32 @@ describe('AppController (e2e)', () => {
           .expect(409)
       });
 
+      it("동시에 같은 제목으로 두 번 생성 요청을 보내도 한 건만 성공한다 (중복 제목 레이스)", async () => {
+        const { start_date, end_date } = futureRange();
+        const payload = {
+          type: 0,
+          mininum_count: 1,
+          title: unique('챌린지-race'),
+          content: "테스트",
+          start_date,
+          end_date,
+        };
+
+        const responses = await Promise.all([
+          request(app.getHttpServer())
+            .post("/challenge")
+            .set('Authorization', `Bearer ${accessToken}`)
+            .send(payload),
+          request(app.getHttpServer())
+            .post("/challenge")
+            .set('Authorization', `Bearer ${accessToken}`)
+            .send(payload),
+        ]);
+
+        const statuses = responses.map(res => res.status).sort();
+        expect(statuses).toEqual([201, 409]);
+      });
+
       it("파라미터 타입 확인", () => {
         const { start_date, end_date } = futureRange();
         return request(app.getHttpServer())
@@ -689,6 +715,30 @@ describe('AppController (e2e)', () => {
           });
 
         return attachAndSend().expect(409);
+      });
+
+      it("동시에 같은 제목으로 두 번 생성 요청을 보내도 한 건만 성공한다 (중복 제목 레이스)", async () => {
+        const title = unique('피드-race');
+        const attachAndSend = () =>
+          request(app.getHttpServer())
+          .post(baseUrl)
+          .set('Authorization', `Bearer ${accessToken}`)
+          .field('challenge_id', challengeId.toString())
+          .field('title', title)
+          .field('content', '테스트')
+          .attach(
+            'images',
+            Buffer.from('test'),
+            { filename: 'test.png', contentType: 'image/png' }
+          );
+
+        const responses = await Promise.all([attachAndSend(), attachAndSend()]);
+
+        const statuses = responses.map(res => res.status).sort();
+        expect(statuses).toEqual([201, 409]);
+
+        const successResponse = responses.find(res => res.status === 201);
+        uploadedImagePaths.push(...(successResponse?.body.data.images ?? []));
       });
 
       it("DTO가 없는 경우", () => {

@@ -4,10 +4,22 @@ import { UpdateFeedDto } from './dto/update-feed.dto';
 import { ChallengeService } from '../challenge/challenge.service';
 import { checkThePast } from '../common/util';
 import { Feed } from './entity/feed.entity';
-import { Not, Repository } from 'typeorm';
+import { Not, QueryFailedError, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ResponseFeedDto } from './dto/response-feed.dto';
 import { ResponsePagingDto } from '../common/dto/response-paging.dto';
+
+const DUPLICATE_TITLE_MESSAGE = "중복된 제목입니다.";
+const UNIQUE_TITLE_INDEX = 'idx_unique_feed_title';
+// MariaDB 중복키 메시지는 "Duplicate entry '<값>' for key '<인덱스명>'" 형태라, 인덱스명만
+// bare substring으로 찾으면 입력값(title) 자체가 우연히 이 문자열을 포함할 때 오탐할 수 있다.
+// "for key '...'" 형태까지 포함해 매칭해 값 구간과 키 구간을 구분한다.
+const UNIQUE_TITLE_INDEX_KEY_SUFFIX = `for key '${UNIQUE_TITLE_INDEX}'`;
+
+interface MysqlDriverError {
+    code?: string;
+    sqlMessage?: string;
+}
 
 @Injectable()
 export class FeedService {
@@ -16,6 +28,22 @@ export class FeedService {
         private readonly challengeService: ChallengeService,
         @InjectRepository(Feed) private feedRepository: Repository<Feed>
     ){}
+
+    // 위 findByTitle 사전 체크와 실제 save 사이의 레이스로 동시 요청이 모두 통과했을 경우,
+    // DB 유니크 인덱스(idx_unique_feed_title)가 최종 방어선이 된다.
+    private async saveOrThrowDuplicateTitle(feed: Feed): Promise<Feed> {
+        try {
+            return await this.feedRepository.save(feed);
+        } catch (error) {
+            const driverError = error instanceof QueryFailedError
+                ? (error.driverError as MysqlDriverError)
+                : undefined;
+            if (driverError?.code === 'ER_DUP_ENTRY' && driverError.sqlMessage?.includes(UNIQUE_TITLE_INDEX_KEY_SUFFIX)) {
+                throw new ConflictException(DUPLICATE_TITLE_MESSAGE);
+            }
+            throw error;
+        }
+    }
 
     private getFileArr(images: Express.Multer.File[]): string[]{
         const fileNameArr: string[] = [];
@@ -76,9 +104,9 @@ export class FeedService {
 
         const feed = await this.findByTitle(dto.title);
         if(feed){
-            throw new ConflictException("중복된 제목입니다.");
+            throw new ConflictException(DUPLICATE_TITLE_MESSAGE);
         }
-        
+
         dto.images = this.getFileArr(images);
 
         const newFeed = this.feedRepository.create({
@@ -89,7 +117,7 @@ export class FeedService {
             challenge: { id: dto.challenge_id },
         });
 
-        const savedFeed = await this.feedRepository.save(newFeed);
+        const savedFeed = await this.saveOrThrowDuplicateTitle(newFeed);
 
         return ResponseFeedDto.from(savedFeed);
     }
@@ -106,15 +134,15 @@ export class FeedService {
 
         const checkTitle = await this.findByTitle(dto.title, feedId);
         if (checkTitle) {
-            throw new ConflictException("중복된 제목입니다.");
+            throw new ConflictException(DUPLICATE_TITLE_MESSAGE);
         }
 
         // 새 이미지가 없으면 기존 이미지 유지
         const newImages = this.getFileArr(images);
         dto.images = newImages.length > 0 ? newImages : (feed.images ?? []);
-        
+
         Object.assign(feed, dto);
-        const savedFeed = await this.feedRepository.save(feed);
+        const savedFeed = await this.saveOrThrowDuplicateTitle(feed);
 
         return ResponseFeedDto.from(savedFeed);
     }

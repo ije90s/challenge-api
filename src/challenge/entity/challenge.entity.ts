@@ -1,8 +1,9 @@
 import { CommonEntity } from "../../common/entity/common.entity";
 import { User } from "../../user/entity/user.entity";
-import { Column, DeleteDateColumn, Entity, JoinColumn, ManyToOne } from "typeorm";
+import { Column, DeleteDateColumn, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @Entity({name: "challenge"})
+@Index('idx_unique_challenge_title', ['title'], { unique: true })
 export class Challenge extends CommonEntity {
     @Column({type: 'tinyint', default: 0})
     type: number;
@@ -10,7 +11,7 @@ export class Challenge extends CommonEntity {
     @Column({type: 'tinyint', default: 1})
     mininum_count: number;
 
-    @Column({type: 'varchar', length: 30, unique: true, nullable: false })
+    @Column({type: 'varchar', length: 30, nullable: false })
     title: string;
 
     @Column({type: 'text', nullable: false })

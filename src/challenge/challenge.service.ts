@@ -4,13 +4,41 @@ import { UpdateChallengeDto } from './dto/update-challenge.dto';
 import { checkDate } from '../common/util';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Challenge } from './entity/challenge.entity';
-import { MoreThanOrEqual, Not, Repository } from 'typeorm';
+import { MoreThanOrEqual, Not, QueryFailedError, Repository } from 'typeorm';
 import { ResponseChallengeDto } from './dto/response-challenge.dto';
 import { ResponsePagingDto } from '../common/dto/response-paging.dto';
+
+const DUPLICATE_TITLE_MESSAGE = "중복된 제목입니다.";
+const UNIQUE_TITLE_INDEX = 'idx_unique_challenge_title';
+// MariaDB 중복키 메시지는 "Duplicate entry '<값>' for key '<인덱스명>'" 형태라, 인덱스명만
+// bare substring으로 찾으면 입력값(title) 자체가 우연히 이 문자열을 포함할 때 오탐할 수 있다.
+// "for key '...'" 형태까지 포함해 매칭해 값 구간과 키 구간을 구분한다.
+const UNIQUE_TITLE_INDEX_KEY_SUFFIX = `for key '${UNIQUE_TITLE_INDEX}'`;
+
+interface MysqlDriverError {
+    code?: string;
+    sqlMessage?: string;
+}
 
 @Injectable()
 export class ChallengeService {
     constructor(@InjectRepository(Challenge) private challengeRepository: Repository<Challenge>){}
+
+    // 위 findByTitle 사전 체크와 실제 save 사이의 레이스로 동시 요청이 모두 통과했을 경우,
+    // DB 유니크 인덱스(idx_unique_challenge_title)가 최종 방어선이 된다.
+    private async saveOrThrowDuplicateTitle(challenge: Challenge): Promise<Challenge> {
+        try {
+            return await this.challengeRepository.save(challenge);
+        } catch (error) {
+            const driverError = error instanceof QueryFailedError
+                ? (error.driverError as MysqlDriverError)
+                : undefined;
+            if (driverError?.code === 'ER_DUP_ENTRY' && driverError.sqlMessage?.includes(UNIQUE_TITLE_INDEX_KEY_SUFFIX)) {
+                throw new ConflictException(DUPLICATE_TITLE_MESSAGE);
+            }
+            throw error;
+        }
+    }
 
     async findAll(page: number, limit: number): Promise<ResponsePagingDto<ResponseChallengeDto>>{
         const today = new Date();
@@ -59,7 +87,7 @@ export class ChallengeService {
         // 제목 중복 확인
         const challenge = await this.findByTitle(title);
         if(challenge){
-            throw new ConflictException("중복된 제목입니다.");
+            throw new ConflictException(DUPLICATE_TITLE_MESSAGE);
         }
 
         // 날짜 확인
@@ -68,8 +96,8 @@ export class ChallengeService {
         }
 
         const newChallenge = this.challengeRepository.create({ ...dto, author: { id: userId } });
-        const savedChallenge = await this.challengeRepository.save(newChallenge);
-  
+        const savedChallenge = await this.saveOrThrowDuplicateTitle(newChallenge);
+
         return ResponseChallengeDto.from(savedChallenge);
     }
 
@@ -88,7 +116,7 @@ export class ChallengeService {
         if (dto.title && dto.title !== challenge.title) {
             const exists = await this.findByTitle(dto.title, challengeId);
             if (exists) {
-                throw new ConflictException("중복된 제목입니다.");
+                throw new ConflictException(DUPLICATE_TITLE_MESSAGE);
             }
         }
 
@@ -101,7 +129,7 @@ export class ChallengeService {
         }
 
         Object.assign(challenge, dto);
-        const savedChallenge = await this.challengeRepository.save(challenge);
+        const savedChallenge = await this.saveOrThrowDuplicateTitle(challenge);
 
         return ResponseChallengeDto.from(savedChallenge);
     }

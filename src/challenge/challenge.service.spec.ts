@@ -2,9 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ChallengeService } from './challenge.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Challenge } from './entity/challenge.entity';
-import { Not } from 'typeorm';
+import { Not, QueryFailedError } from 'typeorm';
 import { ResponseChallengeDto } from './dto/response-challenge.dto';
 import { ResponsePagingDto } from '../common/dto/response-paging.dto';
+
+const makeDupEntryError = (sqlMessage: string): QueryFailedError => {
+  const driverError = Object.assign(new Error(sqlMessage), { code: 'ER_DUP_ENTRY', sqlMessage });
+  return new QueryFailedError('INSERT ...', [], driverError);
+};
 
 describe('ChallengeService', () => {
   let service: ChallengeService;
@@ -229,6 +234,44 @@ describe('ChallengeService', () => {
 
       await expect(service.create(3, dto)).rejects.toThrow("날짜 설정이 잘못되었습니다.");
     });
+
+    it("findByTitle 통과 후 save에서 유니크 제약 위반이 발생한 경우 (동시 요청 레이스)", async () => {
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+      dto = {
+        type: 1,
+        mininum_count: 1,
+        title: '테스트3',
+        content: '테스트3',
+        start_date: new Date('2025-12-01'),
+        end_date: new Date('2025-12-18'),
+      };
+      mockChallengeRepository.create.mockReturnValue(challengeEntity);
+
+      const dupError = makeDupEntryError("Duplicate entry '테스트3' for key 'idx_unique_challenge_title'");
+      mockChallengeRepository.save.mockRejectedValue(dupError);
+
+      await expect(service.create(3, dto)).rejects.toThrow("중복된 제목입니다.");
+    });
+
+    it('save에서 다른 유니크 제약 위반이 발생하면 그대로 전파한다', async () => {
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+      mockChallengeRepository.create.mockReturnValue(challengeEntity);
+
+      const dupError = makeDupEntryError("Duplicate entry 'x' for key 'some_other_index'");
+      mockChallengeRepository.save.mockRejectedValue(dupError);
+
+      await expect(service.create(3, dto)).rejects.toThrow(dupError);
+    });
+
+    it('save에서 유니크 제약과 무관한 에러가 발생하면 그대로 전파한다', async () => {
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+      mockChallengeRepository.create.mockReturnValue(challengeEntity);
+
+      const otherError = new Error('connection lost');
+      mockChallengeRepository.save.mockRejectedValue(otherError);
+
+      await expect(service.create(3, dto)).rejects.toThrow(otherError);
+    });
   });
 
   describe("update", () => {
@@ -310,6 +353,66 @@ describe('ChallengeService', () => {
       
       dto = { ...dto, title: '테스트3', end_date: new Date('2025-11-30') };
       await expect(service.update(1, 1, dto)).rejects.toThrow("날짜 설정이 잘못되었습니다.");
+    });
+
+    it("findByTitle 통과 후 save에서 유니크 제약 위반이 발생한 경우 (동시 요청 레이스)", async () => {
+      const challenge = {
+        ...challenges[0],
+        author_id: challenges[0].author.id,
+      }
+      jest.spyOn(service, 'findOne').mockResolvedValue(challenge);
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+
+      dto = {
+        title: '테스트3',
+        content: '테스트3',
+        start_date: new Date('2025-12-01'),
+        end_date: new Date('2026-01-01'),
+      };
+      const dupError = makeDupEntryError("Duplicate entry '테스트3' for key 'idx_unique_challenge_title'");
+      mockChallengeRepository.save.mockRejectedValue(dupError);
+
+      await expect(service.update(1, 1, dto)).rejects.toThrow("중복된 제목입니다.");
+    });
+
+    it('save에서 다른 유니크 제약 위반이 발생하면 그대로 전파한다', async () => {
+      const challenge = {
+        ...challenges[0],
+        author_id: challenges[0].author.id,
+      }
+      jest.spyOn(service, 'findOne').mockResolvedValue(challenge);
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+
+      dto = {
+        title: '테스트3',
+        content: '테스트3',
+        start_date: new Date('2025-12-01'),
+        end_date: new Date('2026-01-01'),
+      };
+      const dupError = makeDupEntryError("Duplicate entry 'x' for key 'some_other_index'");
+      mockChallengeRepository.save.mockRejectedValue(dupError);
+
+      await expect(service.update(1, 1, dto)).rejects.toThrow(dupError);
+    });
+
+    it('save에서 유니크 제약과 무관한 에러가 발생하면 그대로 전파한다', async () => {
+      const challenge = {
+        ...challenges[0],
+        author_id: challenges[0].author.id,
+      }
+      jest.spyOn(service, 'findOne').mockResolvedValue(challenge);
+      jest.spyOn(service, 'findByTitle').mockResolvedValue(null);
+
+      dto = {
+        title: '테스트3',
+        content: '테스트3',
+        start_date: new Date('2025-12-01'),
+        end_date: new Date('2026-01-01'),
+      };
+      const otherError = new Error('connection lost');
+      mockChallengeRepository.save.mockRejectedValue(otherError);
+
+      await expect(service.update(1, 1, dto)).rejects.toThrow(otherError);
     });
   });
 
